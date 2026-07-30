@@ -8,42 +8,39 @@ These components are **host / Kubernetes runtime only**. They are not intended f
 
 Consoles and status surfaces live on Vercel:
 
-- [cyclekernel-lattice-status](https://cyclekernel-lattice-status-pnud57x0s.vercel.app)
+- [cyclekernel-lattice-status](https://cyclekernel-lattice-status-7y9nn96ae.vercel.app)
 - [control12-lattice-v30](https://control12-lattice-v30-5vrd0gdqx.vercel.app)
-- [control12-evidence-console](https://control12-evidence-console-rnguy8f6p.vercel.app)
+- [control12-evidence-console](https://control12-evidence-console-jkdofnsfu.vercel.app)
 - [cleanroom-v32-sovereign-console](https://cleanroom-v32-sovereign-console-9ok2946e3.vercel.app)
-- [control12-launch-console](https://control12-launch-console-2cgsbwf69.vercel.app)
+- [control12-launch-console](https://control12-launch-console-nz6b2wwbg.vercel.app)
 
-## Key Components
+## Pushed Workers (this repo)
 
-### Core Workers
-- `control12-archive-durability-worker.py` — v30 erasure-coded archive durability (encode / scrub / repair / restore)
-- `control12-snapshot-worker.py` — v29 snapshot catalog (full + incremental, restore, GC)
-- `control12-data-continuity-worker.py` — v28 logical journal replay + PITR
-- `control12-migration-resilience-worker.py` — v27 drift detection + authorized repair
-- `control12-state-migration-worker.py` — v26 expand/verify/contract migrations
-- `control12-deployment-worker.py` — fenced Kubernetes deployment worker
-- `control12-fleet-controller.py` — progressive fleet campaigns
-- `control12-autonomy-controller.py` — bounded autonomous cycles
-- `control12-policy-optimizer.py` — shadow policy evaluation
+### scripts/
+- `build-push-immutable.sh` — digest-pinned, SBOM, cosign, crane
+- `preflight-runtime.sh` — builder + registry credential checks
 
-### Build & Promotion
-- `build-push-immutable.sh` + `preflight-runtime.sh`
-- `control12-build-and-deploy.sh`
-- `promote-approved-runner.sh` / `rollback-approved-runner.sh`
+### workers/
+- `control12-autonomy-controller.py` — bounded v18 autonomy cycles
+- `control12-fleet-controller.py` — v17 progressive fleet campaigns
+- `control12-policy-optimizer.py` — v19 shadow optimization evaluation
 
-### Evidence & Backup
-- `control12_audit_export.py`
-- `control12_backup.py`
+### Still pending push (available in attachments)
+- `control12-archive-durability-worker.py` (v30)
+- `control12-snapshot-worker.py` (v29)
+- `control12-data-continuity-worker.py` (v28)
+- `control12-deployment-worker.py`
+- `control12-migration-resilience-worker.py` / `control12-state-migration-worker.py`
+- `control12_audit_export.py` / `control12_backup.py`
+- live-*-integration harnesses
 
-### Live Integration Harnesses
-- `live-archive-durability-v30.py`
-- `live-snapshot-catalog-v29.py`
-- `live-data-continuity-v28.py`
-- `live-migration-resilience-v27.py`
-- `live-state-migration-v26.py`
-- `live-fleet-integration.py` / `live-deployment-integration.py`
-- and related live-*-integration scripts
+## Phase 4 — Cognitive Sync
+
+Ghost Shell Sentience HUD (trait mapping overlay) is prepared and ready for deployment under the GhostShell / primary team surfaces. Mapping rules:
+
+- High Entropy (L5 > 0.8) → Creative / Divergent prompts
+- High Coupling (L2 > 0.05) → Analytical / Convergent prompts
+- Low Core (Core < 0.1) → Survival / Conservation protocols
 
 ## Security Notes
 
@@ -54,4 +51,4 @@ Consoles and status surfaces live on Vercel:
 ## License / Lineage
 
 CycleKernel · CONTROL12 · GhostShell · Sovereign Runtime  
-Flint Node lineage · onlinecyclekernel-deploy skill
+Flint Node lineage · onlinecyclekernel-deploy · v3.1-ghost-sync
