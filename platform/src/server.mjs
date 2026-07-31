@@ -17,7 +17,7 @@ import { DeploymentCoordinator } from "./deployment/deployment-coordinator.mjs";
 import { WorkflowScheduler } from "./scheduler/workflow-scheduler.mjs";
 import { RuntimeSupervisor } from "./runtime/runtime-supervisor.mjs";
 import { appendJsonLine } from "./lib/json-store.mjs";
-import { readJson, requireAuth, sendJson } from "./http/router.mjs";
+import { readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from "./http/router.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
 import { codingQuorumLocal, codingQuorumFull } from "./workflows/templates.mjs";
@@ -27,6 +27,7 @@ const dashboardDir = path.resolve(here, "../dashboard");
 const policyFile = process.env.CONTROL12_POLICY_FILE || path.resolve(here, "../policies/default.json");
 const codeWorkspace = process.env.CONTROL12_CODE_WORKSPACE || path.join(config.root, "workspace");
 const requireQuorum = process.env.CONTROL12_CODE_REQUIRE_QUORUM === "1";
+const chatOpen = process.env.CONTROL12_CHAT_OPEN === "1";
 
 const bus = new MessageBus({ eventFile: config.eventFile });
 const policy = new CapabilityPolicyEngine({ policyFile });
@@ -126,7 +127,10 @@ async function serveDashboard(res, pathname) {
     const body = await fs.readFile(file);
     const ext = path.extname(file);
     const type = ext === ".html" ? "text/html" : ext === ".css" ? "text/css" : "text/javascript";
-    res.writeHead(200, { "content-type": `${type}; charset=utf-8`, "cache-control": "no-store" });
+    res.writeHead(200, {
+      "content-type": `${type}; charset=utf-8`,
+      "cache-control": "no-store"
+    });
     res.end(body);
     return true;
   } catch {
@@ -137,7 +141,12 @@ async function serveDashboard(res, pathname) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${config.host}:${config.port}`}`);
   try {
-    if (req.method === "GET" && url.pathname === "/health") return sendJson(res, 200, await supervisor.health());
+    if (req.method === "OPTIONS") return sendOptions(res);
+
+    if (req.method === "GET" && url.pathname === "/health") {
+      const h = await supervisor.health();
+      return sendJson(res, 200, { ...h, chatOpen, requireQuorum });
+    }
     if (req.method === "GET" && url.pathname === "/api/v1/components") return sendJson(res, 200, await registry.list());
     if (req.method === "GET" && url.pathname === "/api/v1/agents") return sendJson(res, 200, agents.list());
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
@@ -146,7 +155,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         ...coding.getPolicySnapshot(),
         allowlistMode: strictAllowlist ? "strict" : "unrestricted",
-        requireQuorum
+        requireQuorum,
+        chatOpen
       });
     }
 
@@ -171,6 +181,25 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && url.pathname === "/api/v1/chat/tools") {
       return sendJson(res, 200, { tools: ChatWire.toolDescriptors() });
+    }
+
+    // Chat session/turn: open mode or bearer
+    if (req.method === "POST" && url.pathname === "/api/v1/chat/session") {
+      requireAuthUnlessChatOpen(req, config.apiToken);
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 201, chatWire.createSession({
+        label: body.label,
+        belief: body.belief,
+        nodeId: body.nodeId ?? "avrone"
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/chat/turn") {
+      requireAuthUnlessChatOpen(req, config.apiToken);
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, chatWire.prepareTurn(body.sessionId, {
+        message: body.message,
+        belief: body.belief
+      }));
     }
 
     if (req.method === "POST") requireAuth(req, config.apiToken);
@@ -202,22 +231,6 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/api/v1/belief/tick") {
       return sendJson(res, 200, beliefGraph.tickAll());
-    }
-
-    if (req.method === "POST" && url.pathname === "/api/v1/chat/session") {
-      const body = await readJson(req, config.maxBodyBytes);
-      return sendJson(res, 201, chatWire.createSession({
-        label: body.label,
-        belief: body.belief,
-        nodeId: body.nodeId ?? "avrone"
-      }));
-    }
-    if (req.method === "POST" && url.pathname === "/api/v1/chat/turn") {
-      const body = await readJson(req, config.maxBodyBytes);
-      return sendJson(res, 200, chatWire.prepareTurn(body.sessionId, {
-        message: body.message,
-        belief: body.belief
-      }));
     }
 
     if (req.method === "POST" && url.pathname === "/api/v1/code/write") {
@@ -333,13 +346,16 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(config.port, config.host, () => {
-  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${config.host}:${config.port}`);
+const listenHost = process.env.CONTROL12_PLATFORM_BIND || config.host;
+server.listen(config.port, listenHost, () => {
+  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${listenHost}:${config.port}`);
   console.log(`Code workspace: ${codeWorkspace}`);
   console.log(`Belief field nodes: ${beliefSeed.snapshot.nodes.map(n => n.id).join(", ")}`);
+  console.log(`chatOpen=${chatOpen} requireQuorum=${requireQuorum}`);
   console.log(`Code policy: ${JSON.stringify({
     ...coding.getPolicySnapshot(),
     allowlistMode: strictAllowlist ? "strict" : "unrestricted",
-    requireQuorum
+    requireQuorum,
+    chatOpen
   })}`);
 });

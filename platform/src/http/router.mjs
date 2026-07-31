@@ -3,8 +3,16 @@ import crypto from "node:crypto";
 function safeEqual(a, b) {
   const left = Buffer.from(a || "");
   const right = Buffer.from(b || "");
-  return left.length === right.length && crypto.timingSafeEqual(left, right);
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
 }
+
+const CORS_HEADERS = {
+  "access-control-allow-origin": process.env.CONTROL12_CORS_ORIGIN || "*",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-headers": "content-type,authorization",
+  "access-control-max-age": "86400"
+};
 
 export async function readJson(req, maxBytes) {
   const chunks = [];
@@ -23,9 +31,15 @@ export function sendJson(res, status, value) {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-content-type-options": "nosniff",
-    "content-security-policy": "default-src 'none'"
+    "content-security-policy": "default-src 'none'",
+    ...CORS_HEADERS
   });
   res.end(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+export function sendOptions(res) {
+  res.writeHead(204, CORS_HEADERS);
+  res.end();
 }
 
 export function requireAuth(req, token) {
@@ -36,4 +50,10 @@ export function requireAuth(req, token) {
     error.statusCode = 401;
     throw error;
   }
+}
+
+/** Auth for chat session/turn only — skip when CONTROL12_CHAT_OPEN=1. */
+export function requireAuthUnlessChatOpen(req, token) {
+  if (process.env.CONTROL12_CHAT_OPEN === "1") return;
+  requireAuth(req, token);
 }

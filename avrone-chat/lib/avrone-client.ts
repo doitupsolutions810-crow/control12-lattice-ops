@@ -1,12 +1,11 @@
-/**
- * Browser/server-safe subset of platform AvroneClient for the chat app.
- */
+import { localLatticeAugmentation } from './local-lattice';
 
 export type AvroneContext = {
   systemAugmentation: string;
   session: { id: string; belief: number } | null;
   tools: Array<{ name: string; path: string }>;
   offline: boolean;
+  source: 'platform' | 'local-shim';
 };
 
 export class AvroneClient {
@@ -15,7 +14,15 @@ export class AvroneClient {
   timeoutMs: number;
   sessionId: string | null = null;
 
-  constructor({ baseUrl, token = '', timeoutMs = 20000 }: { baseUrl: string; token?: string; timeoutMs?: number }) {
+  constructor({
+    baseUrl,
+    token = '',
+    timeoutMs = 12000
+  }: {
+    baseUrl: string;
+    token?: string;
+    timeoutMs?: number;
+  }) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.token = token;
     this.timeoutMs = timeoutMs;
@@ -68,54 +75,40 @@ export class AvroneClient {
   }
 
   async buildAvroneContext(opts: { message?: string; belief?: number } = {}): Promise<AvroneContext> {
-    const basePersona =
-      'You are Avrone Due’Krey, scribe of mathematical, scientific, and spiritual frequencies.\n' +
-      'When lattice state is present, let spectrum and belief color tone without claiming certainty.';
+    const belief = opts.belief ?? 0.55;
+    const message = opts.message ?? '';
+
+    if (!this.baseUrl) {
+      return {
+        systemAugmentation: localLatticeAugmentation(belief, message),
+        session: null,
+        tools: [],
+        offline: true,
+        source: 'local-shim'
+      };
+    }
 
     try {
       if (!this.sessionId) {
-        await this.createSession({ belief: opts.belief ?? 0.55 });
+        await this.createSession({ belief });
       }
-      const turn = await this.prepareTurn(this.sessionId!, {
-        message: opts.message,
-        belief: opts.belief
-      });
-      const systemAugmentation =
-        (turn.systemAugmentation as string) ||
-        `${basePersona}\n${(turn as { systemAugmentation?: string }).systemAugmentation || ''}`;
+      const turn = await this.prepareTurn(this.sessionId!, { message, belief });
+      const systemAugmentation = (turn.systemAugmentation as string) || localLatticeAugmentation(belief, message);
       return {
         systemAugmentation,
         session: (turn.session as { id: string; belief: number }) || null,
         tools: (turn.tools as Array<{ name: string; path: string }>) || [],
-        offline: false
+        offline: false,
+        source: 'platform'
       };
     } catch {
-      let fragment = '[ResonantBridge:offline]';
-      try {
-        const p = await this.get('/api/v1/audio/prompt');
-        fragment = (p.fragment as string) || fragment;
-      } catch {
-        /* fully offline */
-      }
       return {
-        systemAugmentation: `${basePersona}\n${fragment}`,
+        systemAugmentation: localLatticeAugmentation(belief, message),
         session: null,
         tools: [],
-        offline: true
+        offline: true,
+        source: 'local-shim'
       };
     }
-  }
-
-  codingQuorum(body: {
-    goal: string;
-    path?: string;
-    content?: string;
-    command?: string;
-    skipRemoteAgents?: boolean;
-  }) {
-    return this.post('/api/v1/code/quorum', {
-      skipRemoteAgents: true,
-      ...body
-    });
   }
 }

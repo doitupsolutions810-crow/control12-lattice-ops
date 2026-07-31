@@ -1,39 +1,44 @@
 # Avrone Chat
 
 Next.js chatbot wired to CONTROL12 lattice (`/api/v1/chat/session` + `/turn`).
+Falls back to a **local lattice shim** when the platform is unreachable.
 
 ## Env
 
 ```bash
 XAI_API_KEY=...
-# optional overrides:
-# XAI_BASE_URL=https://api.x.ai/v1
-# XAI_MODEL=grok-2-latest
 
-CONTROL12_PLATFORM_URL=https://<platform-host>
-CONTROL12_PLATFORM_TOKEN=<same as platform CONTROL12_PLATFORM_TOKEN>
+# Platform (optional — chat works offline with local shim)
+CONTROL12_PLATFORM_URL=https://<public-or-tunnel-host>
+CONTROL12_PLATFORM_TOKEN=<token>   # omit if platform CONTROL12_CHAT_OPEN=1
 ```
 
-If the platform is unreachable, chat still works with a base Avrone system prompt (`x-lattice-offline: 1`).
+## Mitigated connectivity path
+
+Platform binds to localhost by default. For Vercel:
+
+```bash
+# On the machine running the platform:
+export CONTROL12_CHAT_OPEN=1          # session/turn without bearer (dev/tunnel)
+export CONTROL12_PLATFORM_BIND=0.0.0.0  # optional LAN bind
+node platform/src/server.mjs
+
+# Expose with cloudflared (example):
+cloudflared tunnel --url http://127.0.0.1:4400
+# → set CONTROL12_PLATFORM_URL on Vercel to the https://*.trycloudflare.com URL
+```
+
+Code/terminal routes still require bearer when `CONTROL12_PLATFORM_TOKEN` is set.
 
 ## Local
 
 ```bash
-cd avrone-chat
-npm install
-npm run dev
+cd avrone-chat && npm install && npm run dev
+curl -s localhost:3000/api/health | jq
 ```
 
 ## Deploy on Vercel
 
-1. Import `control12-lattice-ops` (or this subdirectory as root).
-2. Set **Root Directory** to `avrone-chat`.
-3. Add env vars above.
-4. Deploy.
-
-```bash
-# from repo root, if using Vercel CLI:
-vercel --cwd avrone-chat
-```
-
-Platform must expose the chat routes and accept the bearer token on POSTs.
+1. Import repo; **Root Directory** = `avrone-chat`
+2. Set `XAI_API_KEY` (+ optional platform URL/token)
+3. Deploy

@@ -1,7 +1,9 @@
 import { AvroneClient } from '../../../lib/avrone-client';
+import { localLatticeAugmentation } from '../../../lib/local-lattice';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 type Msg = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -19,19 +21,20 @@ export async function POST(req: Request) {
     const platformUrl = process.env.CONTROL12_PLATFORM_URL || '';
     const platformToken = process.env.CONTROL12_PLATFORM_TOKEN || '';
 
-    let systemAugmentation =
-      'You are Avrone Due’Krey, scribe of mathematical, scientific, and spiritual frequencies.';
+    let systemAugmentation = localLatticeAugmentation(belief, userText);
     let latticeOffline = true;
+    let latticeSource: 'platform' | 'local-shim' = 'local-shim';
 
     if (platformUrl) {
       const client = new AvroneClient({
         baseUrl: platformUrl,
         token: platformToken,
-        timeoutMs: 15000
+        timeoutMs: 10000
       });
       const ctx = await client.buildAvroneContext({ message: userText, belief });
       systemAugmentation = ctx.systemAugmentation;
       latticeOffline = ctx.offline;
+      latticeSource = ctx.source;
     }
 
     const apiKey = process.env.XAI_API_KEY || process.env.OPENAI_API_KEY;
@@ -40,7 +43,8 @@ export async function POST(req: Request) {
         {
           error: 'XAI_API_KEY or OPENAI_API_KEY is required',
           systemAugmentation,
-          latticeOffline
+          latticeOffline,
+          latticeSource
         },
         { status: 500 }
       );
@@ -68,7 +72,12 @@ export async function POST(req: Request) {
     if (!upstream.ok || !upstream.body) {
       const text = await upstream.text();
       return Response.json(
-        { error: `model HTTP ${upstream.status}`, detail: text.slice(0, 500), latticeOffline },
+        {
+          error: `model HTTP ${upstream.status}`,
+          detail: text.slice(0, 500),
+          latticeOffline,
+          latticeSource
+        },
         { status: 502 }
       );
     }
@@ -76,7 +85,8 @@ export async function POST(req: Request) {
     const headers = new Headers({
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-cache',
-      'x-lattice-offline': latticeOffline ? '1' : '0'
+      'x-lattice-offline': latticeOffline ? '1' : '0',
+      'x-lattice-source': latticeSource
     });
 
     return new Response(upstream.body, { status: 200, headers });
