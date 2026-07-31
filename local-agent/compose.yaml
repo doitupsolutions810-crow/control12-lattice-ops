@@ -1,0 +1,61 @@
+services:
+  model:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command:
+      - -hf
+      - ${CONTROL12_MODEL_REPO:-ggml-org/gemma-3-4b-it-GGUF:Q4_K_M}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ctx-size
+      - ${CONTROL12_CONTEXT_SIZE:-8192}
+      - --parallel
+      - ${CONTROL12_PARALLEL:-2}
+      - --slots
+      - --timeout
+      - ${CONTROL12_SERVER_TIMEOUT:-900}
+      - --jinja
+    expose:
+      - "8080"
+    volumes:
+      - model-cache:/root/.cache
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  control12:
+    image: ${CONTROL12_IMAGE:-ghcr.io/doitupsolutions810-crow/control12-local-agent:0.8.0}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CONTROL12_VERSION: "0.8.0"
+    environment:
+      CONTROL12_MODEL_HOST: model
+      CONTROL12_MODEL_PORT: "8080"
+      CONTROL12_PUBLIC_PORT: "8080"
+      CONTROL12_COMMAND_TIMEOUT_MS: ${CONTROL12_COMMAND_TIMEOUT_MS:-120000}
+      CONTROL12_MAX_COMMAND_OUTPUT: ${CONTROL12_MAX_COMMAND_OUTPUT:-2000000}
+    depends_on:
+      - model
+    ports:
+      - "127.0.0.1:${CONTROL12_HOST_PORT:-4312}:8080"
+    volumes:
+      - control12-state:/home/control12/.control12/state
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /home/control12/.control12/logs:rw,noexec,nosuid,size=32m
+      - /home/control12/.control12/run:rw,noexec,nosuid,size=8m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  model-cache:
+  control12-state:
