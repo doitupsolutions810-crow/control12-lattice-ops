@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { CodingAgent } from '../src/agents/coding-agent.mjs';
 
-describe('CodingAgent sandbox', () => {
+describe('CodingAgent sandbox + policy', () => {
   let root;
   let agent;
 
@@ -13,7 +13,8 @@ describe('CodingAgent sandbox', () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'c12-code-'));
     agent = new CodingAgent({
       workspaceRoot: root,
-      localAgentUrl: 'http://127.0.0.1:4312'
+      localAgentUrl: 'http://127.0.0.1:4312',
+      policyOptions: { maxWriteBytes: 10_000 }
     });
   });
 
@@ -29,7 +30,11 @@ describe('CodingAgent sandbox', () => {
   });
 
   it('rejects path escape', async () => {
-    await assert.rejects(() => agent.writeFile('../outside.txt', 'x'), /escapes workspace/);
+    await assert.rejects(() => agent.writeFile('../outside.txt', 'x'), /escapes workspace|absolute/);
+  });
+
+  it('rejects absolute path', async () => {
+    await assert.rejects(() => agent.writeFile('/tmp/x.txt', 'x'), /absolute/);
   });
 
   it('edits file content', async () => {
@@ -37,5 +42,19 @@ describe('CodingAgent sandbox', () => {
     await agent.editFile('edit.txt', 'beta', 'gamma');
     const r = await agent.readFile('edit.txt');
     assert.equal(r.content, 'alpha gamma');
+  });
+
+  it('rejects shell script write by extension', async () => {
+    await assert.rejects(() => agent.writeFile('run.sh', 'echo hi'), /extension/);
+  });
+
+  it('blocks destructive command before network hop', async () => {
+    await assert.rejects(() => agent.execute('rm -rf /'), /blocked/);
+  });
+
+  it('exposes policy snapshot', () => {
+    const snap = agent.getPolicySnapshot();
+    assert.ok(snap.workspaceRoot);
+    assert.ok(snap.maxWriteBytes > 0);
   });
 });

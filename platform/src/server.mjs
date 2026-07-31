@@ -28,10 +28,20 @@ const registry = new ComponentRegistry(config.registryFile);
 const graph = new KnowledgeGraph(config.graphFile);
 
 const resonant = new ResonantBridge({ label: "control12-platform" });
+
+const strictAllowlist = process.env.CONTROL12_CODE_STRICT_ALLOWLIST === "1";
 const coding = new CodingAgent({
   workspaceRoot: codeWorkspace,
   localAgentUrl: config.localAgentUrl,
-  bus
+  bus,
+  policyOptions: {
+    strictAllowlist,
+    maxWriteBytes: Number(process.env.CONTROL12_CODE_MAX_WRITE_BYTES || 512_000),
+    maxCommandChars: Number(process.env.CONTROL12_CODE_MAX_COMMAND_CHARS || 2_000),
+    maxConcurrent: Number(process.env.CONTROL12_CODE_MAX_CONCURRENT || 2),
+    rateLimitMax: Number(process.env.CONTROL12_CODE_RATE_LIMIT || 20),
+    maxTimeoutMs: Number(process.env.CONTROL12_CODE_MAX_TIMEOUT_MS || 120_000)
+  }
 });
 
 const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant, coding });
@@ -69,7 +79,7 @@ await registry.register({
   version: config.version,
   kind: "code",
   capabilities: ["code.write", "code.edit", "code.execute"],
-  purpose: "Sandboxed coding agent with terminal execution via local-agent."
+  purpose: "Sandboxed coding agent with policy-bounded terminal execution via local-agent."
 });
 await graph.upsertNode({ id: "code.workspace", type: "code", purpose: "coding agent workspace" });
 
@@ -100,6 +110,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/v1/agents") return sendJson(res, 200, agents.list());
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
     if (req.method === "GET" && url.pathname === "/api/v1/graph") return sendJson(res, 200, await graph.snapshot());
+    if (req.method === "GET" && url.pathname === "/api/v1/code/policy") {
+      return sendJson(res, 200, coding.getPolicySnapshot());
+    }
 
     if (req.method === "GET" && url.pathname === "/api/v1/audio/state") {
       return sendJson(res, 200, resonant.getState());
@@ -127,7 +140,6 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, resonant.silence());
     }
 
-    // Coding agent surfaces
     if (req.method === "POST" && url.pathname === "/api/v1/code/write") {
       const body = await readJson(req, config.maxBodyBytes);
       return sendJson(res, 200, await coding.writeFile(body.path, body.content ?? ""));
@@ -156,7 +168,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/api/v1/terminal") {
       const body = await readJson(req, config.maxBodyBytes);
-      return sendJson(res, 200, await coding.execute(body.command, { cwd: body.cwd ?? null }));
+      return sendJson(res, 200, await coding.execute(body.command, {
+        cwd: body.cwd ?? null,
+        timeoutMs: body.timeoutMs
+      }));
     }
 
     if (req.method === "POST" && url.pathname === "/api/v1/components") {
@@ -186,12 +201,19 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 404, { error: "not found" });
   } catch (error) {
     const status = error.statusCode || 500;
-    await appendJsonLine(config.auditFile, { type: "error", observedAt: new Date().toISOString(), path: url.pathname, message: error.message });
-    return sendJson(res, status, { error: error.message });
+    await appendJsonLine(config.auditFile, {
+      type: "error",
+      observedAt: new Date().toISOString(),
+      path: url.pathname,
+      message: error.message,
+      code: error.code || null
+    });
+    return sendJson(res, status, { error: error.message, code: error.code || undefined });
   }
 });
 
 server.listen(config.port, config.host, () => {
   console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${config.host}:${config.port}`);
   console.log(`Code workspace: ${codeWorkspace}`);
+  console.log(`Code policy: ${JSON.stringify(coding.getPolicySnapshot())}`);
 });

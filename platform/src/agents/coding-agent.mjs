@@ -2,69 +2,79 @@
  * CodingAgent – write / edit code and execute via local-agent terminal
  *
  * Safety model (provisional, not absolute):
- * - File writes confined to a workspace root
- * - Terminal execution delegated to local-agent (bounded timeout + output)
- * - No arbitrary path escape outside workspace
+ * - Path confinement under workspace root (relative + .. rejected)
+ * - Content size + denied write extensions
+ * - Command blocked patterns; optional strict allowlist
+ * - Rate limit + concurrent execution cap
+ * - Terminal delegated to local-agent (timeout + output bounds)
  *
  * Always Believe. Never Know.
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createExecutionPolicy } from '../policy/execution-policy.mjs';
 
 export class CodingAgent {
   /**
-   * @param {{ workspaceRoot: string, localAgentUrl: string, bus?: { publish: Function } }}
+   * @param {{
+   *   workspaceRoot: string,
+   *   localAgentUrl: string,
+   *   bus?: { publish: Function },
+   *   policyOptions?: object
+   * }}
    */
-  constructor({ workspaceRoot, localAgentUrl, bus = null }) {
+  constructor({ workspaceRoot, localAgentUrl, bus = null, policyOptions = {} }) {
     this.workspaceRoot = path.resolve(workspaceRoot);
     this.localAgentUrl = localAgentUrl.replace(/\/$/, '');
     this.bus = bus;
+    this.policy = createExecutionPolicy({
+      workspaceRoot: this.workspaceRoot,
+      ...policyOptions
+    });
   }
 
-  /** Resolve and enforce path stays under workspaceRoot. */
   resolveSafe(relPath) {
-    if (typeof relPath !== 'string' || !relPath.trim()) {
-      throw Object.assign(new Error('path is required'), { statusCode: 400 });
-    }
-    const normalized = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/, '');
-    const absolute = path.resolve(this.workspaceRoot, normalized);
-    if (!absolute.startsWith(this.workspaceRoot)) {
-      throw Object.assign(new Error('path escapes workspace'), { statusCode: 400 });
-    }
-    return absolute;
+    return this.policy.resolveSafe(relPath);
   }
 
   async writeFile(relPath, content) {
-    const absolute = this.resolveSafe(relPath);
+    const { absolute, bytes } = this.policy.assertWriteAllowed(relPath, content ?? '');
     await fs.mkdir(path.dirname(absolute), { recursive: true });
-    await fs.writeFile(absolute, content, 'utf8');
-    if (this.bus) await this.bus.publish('code.written', { path: relPath, bytes: Buffer.byteLength(content) });
-    return { ok: true, path: relPath, absolute, bytes: Buffer.byteLength(content) };
+    await fs.writeFile(absolute, content ?? '', 'utf8');
+    if (this.bus) {
+      await this.bus.publish('code.written', { path: relPath, bytes });
+    }
+    return { ok: true, path: relPath, absolute, bytes };
   }
 
   async readFile(relPath) {
-    const absolute = this.resolveSafe(relPath);
+    const absolute = this.policy.resolveSafe(relPath);
     const content = await fs.readFile(absolute, 'utf8');
     return { ok: true, path: relPath, content };
   }
 
   async editFile(relPath, oldString, newString, { replaceAll = false } = {}) {
-    const absolute = this.resolveSafe(relPath);
+    if (typeof oldString !== 'string' || typeof newString !== 'string') {
+      this.policy.deny('oldString and newString are required');
+    }
+    // Projected size after edit (upper bound: full replace-all expansion)
+    const absolute = this.policy.resolveSafe(relPath);
     let content = await fs.readFile(absolute, 'utf8');
     if (!content.includes(oldString)) {
-      throw Object.assign(new Error('oldString not found in file'), { statusCode: 400 });
+      this.policy.deny('oldString not found in file');
     }
-    content = replaceAll
+    const next = replaceAll
       ? content.split(oldString).join(newString)
       : content.replace(oldString, newString);
-    await fs.writeFile(absolute, content, 'utf8');
+    this.policy.assertWriteAllowed(relPath, next);
+    await fs.writeFile(absolute, next, 'utf8');
     if (this.bus) await this.bus.publish('code.edited', { path: relPath });
     return { ok: true, path: relPath };
   }
 
   async listFiles(relDir = '.') {
-    const absolute = this.resolveSafe(relDir);
+    const absolute = this.policy.resolveSafe(relDir);
     const entries = await fs.readdir(absolute, { withFileTypes: true });
     return {
       ok: true,
@@ -78,51 +88,73 @@ export class CodingAgent {
 
   /**
    * Execute a command via local-agent bounded terminal.
-   * cwd defaults to workspace root.
+   * Policy checks run before the request leaves this process.
    */
   async execute(command, { cwd = null, timeoutMs = 120000 } = {}) {
-    if (typeof command !== 'string' || !command.trim()) {
-      throw Object.assign(new Error('command is required'), { statusCode: 400 });
-    }
+    this.policy.assertCommandAllowed(command);
+    const resolvedCwd = cwd ? this.policy.resolveSafe(cwd) : this.workspaceRoot;
+    const clampedTimeout = this.policy.clampTimeout(timeoutMs);
+    const release = this.policy.beginExecution();
 
-    const resolvedCwd = cwd ? this.resolveSafe(cwd) : this.workspaceRoot;
-
-    if (this.bus) await this.bus.publish('terminal.started', { command, cwd: resolvedCwd });
-
-    const response = await fetch(`${this.localAgentUrl}/api/tools/terminal`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ command, cwd: resolvedCwd }),
-      signal: AbortSignal.timeout(timeoutMs)
-    });
-
-    const text = await response.text();
-    let result;
     try {
-      result = JSON.parse(text);
-    } catch {
-      result = { raw: text };
-    }
+      if (this.bus) {
+        await this.bus.publish('terminal.started', {
+          command: command.slice(0, 200),
+          cwd: resolvedCwd
+        });
+      }
 
-    if (!response.ok) {
-      throw Object.assign(
-        new Error(`terminal failed: HTTP ${response.status}: ${text.slice(0, 400)}`),
-        { statusCode: response.status }
-      );
-    }
+      const response = await fetch(`${this.localAgentUrl}/api/tools/terminal`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ command, cwd: resolvedCwd }),
+        signal: AbortSignal.timeout(clampedTimeout)
+      });
 
-    if (this.bus) await this.bus.publish('terminal.completed', { command, code: result.code });
-    return { ok: true, command, cwd: resolvedCwd, ...result };
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        result = { raw: text.slice(0, 4000) };
+      }
+
+      if (!response.ok) {
+        throw Object.assign(
+          new Error(`terminal failed: HTTP ${response.status}: ${text.slice(0, 400)}`),
+          { statusCode: response.status }
+        );
+      }
+
+      if (this.bus) {
+        await this.bus.publish('terminal.completed', {
+          command: command.slice(0, 200),
+          code: result.code
+        });
+      }
+
+      return {
+        ok: true,
+        command,
+        cwd: resolvedCwd,
+        timeoutMs: clampedTimeout,
+        policy: this.policy.snapshot(),
+        ...result
+      };
+    } finally {
+      release();
+    }
   }
 
-  /**
-   * High-level: write a file then optionally run a command.
-   */
   async produceAndRun({ path: relPath, content, command = null }) {
     const written = await this.writeFile(relPath, content);
     if (!command) return { written, execution: null };
     const execution = await this.execute(command);
     return { written, execution };
+  }
+
+  getPolicySnapshot() {
+    return this.policy.snapshot();
   }
 }
 
