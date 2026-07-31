@@ -1,11 +1,8 @@
-/**
- * Runtime security posture snapshot for operators and smoke tests.
- */
-
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { resolveTlsPaths } from '../http/tls-material.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -55,13 +52,7 @@ async function sampleAccess(file, max = 2000) {
         sensitiveOk += 1;
       }
     }
-    return {
-      sampled: lines.length,
-      status401,
-      sensitiveOk,
-      postNone,
-      mtlsTrue
-    };
+    return { sampled: lines.length, status401, sensitiveOk, postNone, mtlsTrue };
   } catch {
     return { sampled: 0, status401: 0, sensitiveOk: 0, postNone: 0, mtlsTrue: 0 };
   }
@@ -90,11 +81,12 @@ export async function buildSecurityStatus({
   apiTokenConfigured
 }) {
   const mtls = process.env.CONTROL12_MTLS === '1';
-  const mtlsDir = process.env.CONTROL12_MTLS_DIR || path.join(process.env.HOME || '', '.control12-mtls');
-  const serverPem = process.env.CONTROL12_TLS_CERT || path.join(mtlsDir, 'server.pem');
+  const paths = resolveTlsPaths();
   const accessLines = await countLines(accessLogPath);
   const accessSample = await sampleAccess(accessLogPath);
-  const cert = await certEndDate(serverPem);
+  const cert = await certEndDate(paths.cert);
+  const dualCa = await fileExists(paths.caPrevious);
+  const reloadRequired = await fileExists(path.join(paths.dir, 'RELOAD_REQUIRED'));
 
   const findings = [];
   if (accessSample.sensitiveOk > 0) findings.push('sensitive_route_success');
@@ -109,6 +101,8 @@ export async function buildSecurityStatus({
     findings.push('cert_nearing_expiry');
   }
   if (chatOpen) findings.push('chat_open_enabled');
+  if (dualCa) findings.push('dual_ca_overlap_active');
+  if (reloadRequired) findings.push('tls_reload_required');
 
   const high = findings.some(f =>
     ['sensitive_route_success', 'post_auth_none'].includes(f)
@@ -117,6 +111,8 @@ export async function buildSecurityStatus({
   return {
     observedAt: new Date().toISOString(),
     mtls,
+    dualCa,
+    reloadRequired,
     chatOpen: Boolean(chatOpen),
     requireQuorum: Boolean(requireQuorum),
     apiTokenConfigured: Boolean(apiTokenConfigured),
@@ -126,8 +122,9 @@ export async function buildSecurityStatus({
       ...accessSample
     },
     cert: cert
-      ? { path: serverPem, notAfter: cert.raw, daysRemaining: cert.daysRemaining }
-      : { path: serverPem, present: await fileExists(serverPem) },
+      ? { path: paths.cert, notAfter: cert.raw, daysRemaining: cert.daysRemaining }
+      : { path: paths.cert, present: await fileExists(paths.cert) },
+    paths,
     findings,
     severity: high ? 'high' : findings.length ? 'elevated' : 'ok'
   };

@@ -1,48 +1,68 @@
 /**
- * HTTP or HTTPS+mTLS server factory.
+ * HTTP or HTTPS+mTLS server factory with dual-CA trust and hot reload.
  *
  * Env:
  *   CONTROL12_MTLS=1
- *   CONTROL12_TLS_CERT  path to server cert PEM
- *   CONTROL12_TLS_KEY   path to server key PEM
- *   CONTROL12_TLS_CA    path to client CA PEM (required when MTLS=1)
+ *   CONTROL12_TLS_CERT / KEY / CA / CA_PREVIOUS
+ *
+ * Hot reload:
+ *   handle.setSecureContextFromDisk()
+ *   or process signal via installTlsReloadSignal(handle)
  */
 
 import http from 'node:http';
 import https from 'node:https';
-import fs from 'node:fs';
+import { loadTlsOptions } from './tls-material.mjs';
 
 export function createAppServer(handler) {
   const mtls = process.env.CONTROL12_MTLS === '1';
-  const certPath = process.env.CONTROL12_TLS_CERT || '';
-  const keyPath = process.env.CONTROL12_TLS_KEY || '';
-  const caPath = process.env.CONTROL12_TLS_CA || '';
+  const wantsTls = mtls || Boolean(process.env.CONTROL12_TLS_CERT);
 
-  if (!mtls && !certPath) {
-    return { server: http.createServer(handler), mode: 'http', mtls: false };
+  if (!wantsTls) {
+    return {
+      server: http.createServer(handler),
+      mode: 'http',
+      mtls: false,
+      dualCa: false,
+      reload: async () => ({ ok: false, reason: 'http-mode' })
+    };
   }
 
-  if (!certPath || !keyPath) {
-    throw new Error('CONTROL12_TLS_CERT and CONTROL12_TLS_KEY are required for TLS/mTLS');
-  }
+  let material = loadTlsOptions({ mtls });
+  const server = https.createServer(material.opts, handler);
 
-  const opts = {
-    cert: fs.readFileSync(certPath),
-    key: fs.readFileSync(keyPath)
-  };
-
-  if (mtls) {
-    if (!caPath) {
-      throw new Error('CONTROL12_TLS_CA is required when CONTROL12_MTLS=1');
-    }
-    opts.ca = fs.readFileSync(caPath);
-    opts.requestCert = true;
-    opts.rejectUnauthorized = true;
+  async function setSecureContextFromDisk() {
+    material = loadTlsOptions({ mtls });
+    server.setSecureContext(material.opts);
+    return {
+      ok: true,
+      loadedAt: material.loadedAt,
+      dualCa: material.dualCa,
+      caCount: material.caCount,
+      paths: material.paths
+    };
   }
 
   return {
-    server: https.createServer(opts, handler),
+    server,
     mode: mtls ? 'https-mtls' : 'https',
-    mtls
+    mtls,
+    dualCa: material.dualCa,
+    caCount: material.caCount,
+    material,
+    setSecureContextFromDisk,
+    reload: setSecureContextFromDisk
   };
 }
+
+/** Reload TLS on SIGHUP (Unix). */
+export function installTlsReloadSignal(handle) {
+  if (!handle?.setSecureContextFromDisk) return;
+  process.on('SIGHUP', () => {
+    handle.setSecureContextFromDisk()
+      .then(r => console.log('[tls] SIGHUP reload', JSON.stringify(r)))
+      .catch(err => console.error('[tls] SIGHUP reload failed', err.message));
+  });
+}
+
+export default createAppServer;
