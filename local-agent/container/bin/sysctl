@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+if [ "${1:-}" = "-n" ]; then
+  case "${2:-}" in
+    hw.model)
+      uname -m
+      exit 0
+      ;;
+    machdep.cpu.brand_string)
+      awk -F: '/model name|Hardware/ {gsub(/^[ \t]+/, "", $2); print $2; exit}' /proc/cpuinfo
+      exit 0
+      ;;
+    hw.memsize)
+      awk '/MemTotal:/ {print $2 * 1024; exit}' /proc/meminfo
+      exit 0
+      ;;
+  esac
+fi
+
+exec /usr/sbin/sysctl "$@"
