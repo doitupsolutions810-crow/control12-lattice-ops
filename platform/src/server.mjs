@@ -14,6 +14,7 @@ import { WorkflowScheduler } from "./scheduler/workflow-scheduler.mjs";
 import { RuntimeSupervisor } from "./runtime/runtime-supervisor.mjs";
 import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, sendJson } from "./http/router.mjs";
+import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(here, "../dashboard");
@@ -23,7 +24,11 @@ const bus = new MessageBus({ eventFile: config.eventFile });
 const policy = new CapabilityPolicyEngine({ policyFile });
 const registry = new ComponentRegistry(config.registryFile);
 const graph = new KnowledgeGraph(config.graphFile);
-const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus });
+
+// Shared living intermediate for agents + chatbot coherence
+const resonant = new ResonantBridge({ label: "control12-platform" });
+
+const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant });
 const artifacts = new ArtifactBuilder({ artifactDir: config.artifactDir, bus });
 const deployments = new DeploymentCoordinator({ policy, bus, executor: config.deployExecutor });
 const scheduler = new WorkflowScheduler({
@@ -42,6 +47,16 @@ for (const [id, purpose] of Object.entries(agents.list())) {
   await graph.upsertNode({ id: `agent.${id}`, type: "agent", purpose });
 }
 
+// Register audio component for observability
+await registry.register({
+  id: "audio.living-intermediate",
+  version: config.version,
+  kind: "audio",
+  capabilities: ["audio.tick", "audio.spectrum", "audio.silence"],
+  purpose: "Additive synthesis organ of attention; belief-driven partials for chatbot and agent coherence."
+});
+await graph.upsertNode({ id: "audio.living-intermediate", type: "audio", purpose: "living intermediate" });
+
 bus.subscribe("*", event => appendJsonLine(config.auditFile, { type: "event", event }));
 
 async function serveDashboard(res, pathname) {
@@ -53,7 +68,7 @@ async function serveDashboard(res, pathname) {
     const body = await fs.readFile(file);
     const ext = path.extname(file);
     const type = ext === ".html" ? "text/html" : ext === ".css" ? "text/css" : "text/javascript";
-    res.writeHead(200, { "content-type": `${type}; charset=utf-8`, "cache-control": "no-store" });
+    res.writeHead(200, { "content-type": `${type}; charset=utf-8", "cache-control": "no-store" });
     res.end(body);
     return true;
   } catch {
@@ -70,7 +85,33 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
     if (req.method === "GET" && url.pathname === "/api/v1/graph") return sendJson(res, 200, await graph.snapshot());
 
+    // Audio / living intermediate surfaces (read-mostly; tick requires auth)
+    if (req.method === "GET" && url.pathname === "/api/v1/audio/state") {
+      return sendJson(res, 200, resonant.getState());
+    }
+    if (req.method === "GET" && url.pathname === "/api/v1/audio/spectrum") {
+      return sendJson(res, 200, resonant.getSpectrum());
+    }
+    if (req.method === "GET" && url.pathname === "/api/v1/audio/prompt") {
+      return sendJson(res, 200, { fragment: resonant.toPromptFragment() });
+    }
+    if (req.method === "GET" && url.pathname === "/api/v1/audio/history") {
+      const limit = Number(url.searchParams.get("limit") || 8);
+      return sendJson(res, 200, resonant.getHistory(limit));
+    }
+
     if (req.method === "POST") requireAuth(req, config.apiToken);
+
+    if (req.method === "POST" && url.pathname === "/api/v1/audio/tick") {
+      const body = await readJson(req, config.maxBodyBytes);
+      const belief = body.belief != null ? Number(body.belief) : 0.5;
+      const other = body.otherBelief != null ? Number(body.otherBelief) : null;
+      const snapshot = resonant.tick(belief, other);
+      return sendJson(res, 200, snapshot);
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/audio/silence") {
+      return sendJson(res, 200, resonant.silence());
+    }
 
     if (req.method === "POST" && url.pathname === "/api/v1/components") {
       const component = await registry.register(await readJson(req, config.maxBodyBytes));
