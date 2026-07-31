@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="${CONTROL12_ROOT:-$HOME/.control12}"
+APP="$ROOT/app"
+LOGS="$ROOT/logs"
+RUN="$ROOT/run"
+MODEL_PORT="${CONTROL12_MODEL_PORT:-11435}"
+APP_PORT="${CONTROL12_PORT:-4312}"
+MODEL_REPO="${CONTROL12_MODEL_REPO:-ggml-org/gemma-3-4b-it-GGUF:Q4_K_M}"
+
+mkdir -p "$APP" "$LOGS" "$RUN"
+
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+NODE="${CONTROL12_NODE_BIN:-$(brew --prefix node@22)/bin/node}"
+LLAMA="${CONTROL12_LLAMA_BIN:-$(command -v llama-server)}"
+
+port_pid() {
+  lsof -nP -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1 || true
+}
+
+wait_http() {
+  local url="$1" label="$2" attempts="$3"
+  for ((i=1; i<=attempts; i++)); do
+    code="$(curl -sS -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+    if [ "$code" = "200" ]; then
+      echo "PASS: $label ready"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "ERROR: $label readiness timeout" >&2
+  return 1
+}
+
+start_model() {
+  local pid
+  pid="$(port_pid "$MODEL_PORT")"
+  if [ -n "$pid" ]; then
+    echo "Model already running: PID $pid"
+    return 0
+  fi
+
+  nohup "$LLAMA" \
+    -hf "$MODEL_REPO" \
+    --host 127.0.0.1 \
+    --port "$MODEL_PORT" \
+    --ctx-size "${CONTROL12_CONTEXT_SIZE:-8192}" \
+    --parallel "${CONTROL12_PARALLEL:-2}" \
+    --slots \
+    --timeout "${CONTROL12_SERVER_TIMEOUT:-900}" \
+    --jinja \
+    >"$LOGS/model.log" 2>"$LOGS/model.err.log" &
+
+  echo $! > "$RUN/model.pid"
+  wait_http "http://127.0.0.1:$MODEL_PORT/health" model 900 || {
+    tail -100 "$LOGS/model.err.log" || true
+    return 1
+  }
+}
+
+start_app() {
+  local pid
+  pid="$(port_pid "$APP_PORT")"
+  if [ -n "$pid" ]; then
+    echo "Application already running: PID $pid"
+    return 0
+  fi
+
+  "$NODE" --check "$APP/server.mjs"
+  "$NODE" --check "$APP/cli.mjs"
+
+  nohup env \
+    CONTROL12_MODEL_URL="http://127.0.0.1:$MODEL_PORT" \
+    CONTROL12_PORT="$APP_PORT" \
+    "$NODE" "$APP/server.mjs" \
+    >"$LOGS/app.log" 2>"$LOGS/app.err.log" &
+
+  echo $! > "$RUN/app.pid"
+  wait_http "http://127.0.0.1:$APP_PORT/health" application 120 || {
+    tail -100 "$LOGS/app.err.log" || true
+    return 1
+  }
+}
+
+stop_port() {
+  local pid
+  pid="$(port_pid "$1")"
+  if [ -n "$pid" ]; then
+    kill "$pid" 2>/dev/null || true
+  fi
+}
+
+action="${1:-help}"
+case "$action" in
+  start) start_model; start_app ;;
+  stop) stop_port "$APP_PORT"; stop_port "$MODEL_PORT"; rm -f "$RUN/app.pid" "$RUN/model.pid" ;;
+  restart) "$0" stop; "$0" start ;;
+  status)
+    echo "model PID: $(port_pid "$MODEL_PORT")"
+    echo "application PID: $(port_pid "$APP_PORT")"
+    curl -sS -o /dev/null -w 'model HTTP: %{http_code}\n' "http://127.0.0.1:$MODEL_PORT/health" || true
+    curl -sS -o /dev/null -w 'application HTTP: %{http_code}\n' "http://127.0.0.1:$APP_PORT/health" || true
+    ;;
+  doctor)
+    echo "Node: $($NODE --version)"
+    echo "llama-server: $LLAMA"
+    curl -fsS "http://127.0.0.1:$MODEL_PORT/health" | jq .
+    curl -fsS "http://127.0.0.1:$APP_PORT/health" | jq .
+    ;;
+  logs)
+    tail -100 "$LOGS/model.err.log" "$LOGS/app.err.log" "$LOGS/model.log" "$LOGS/app.log" 2>/dev/null || true
+    ;;
+  chat|quorum|agent|agents|evidence|task|memory|health|capabilities)
+    exec "$NODE" "$APP/cli.mjs" "$action" "${@:2}"
+    ;;
+  *)
+    cat <<'USAGE'
+Usage:
+  control12-app start|stop|restart|status|doctor|logs
+  control12-app chat "message"
+  control12-app quorum "task"
+  control12-app agent <role> "message"
+  control12-app agents|evidence
+  control12-app task "command"
+  control12-app memory [limit]|health|capabilities
+USAGE
+    ;;
+esac
