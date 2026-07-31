@@ -1,6 +1,6 @@
 {
   "name": "@control12/local-agent",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs && node --check src/cli.mjs",
+    "check": "node --check src/server.mjs && node --check src/cli.mjs && node --check scripts/apply-deterministic-quorum.mjs",
     "test": "node --test test/*.test.mjs"
   }
 }
