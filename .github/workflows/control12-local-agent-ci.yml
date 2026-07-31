@@ -1,15 +1,11 @@
 name: CONTROL12 Local Agent CI
 
+# Automatic triggers are intentionally paused because this repository currently
+# returns GitHub Actions `startup_failure` before creating any job. Re-enable
+# pull_request/push triggers after the repository or account Actions restriction
+# is cleared.
 on:
-  pull_request:
-    paths:
-      - "local-agent/**"
-      - ".github/workflows/control12-local-agent-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "local-agent/**"
-      - ".github/workflows/control12-local-agent-ci.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,8 +26,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: local-agent/package.json
       - name: Check JavaScript syntax
         run: npm run check
       - name: Run source tests
