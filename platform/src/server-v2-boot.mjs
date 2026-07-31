@@ -1,20 +1,19 @@
 /**
- * Unified v2 boot helpers — federation, jacobian tune, coding quorum seals.
+ * Unified v2 boot helpers — federation, jacobian tune, cockpit actions.
  */
 
-import path from 'node:path';
 import { FederationHub } from './federation/digest-exchange.mjs';
 import { JacobianTune } from './audio/jacobian-tune.mjs';
 import { runCockpitAction } from './cockpit/actions.mjs';
 import { seedBeliefField } from './graph/seed-belief-field.mjs';
 
-export function bootV2({ config, bus }) {
+export function bootV2({ config }) {
   const federation = new FederationHub({
     file: config.federationFile,
     label: process.env.CONTROL12_FEDERATION_LABEL || 'local'
   });
   const jacobianTune = new JacobianTune(config.jacobianTuneFile);
-  return { federation, jacobianTune, runCockpitAction, seedBeliefField };
+  return { federation, jacobianTune };
 }
 
 export function enhanceCodingQuorumOptions(opts, config) {
@@ -24,24 +23,41 @@ export function enhanceCodingQuorumOptions(opts, config) {
   };
 }
 
-export async function handleV2Routes(req, res, url, body, ctx) {
-  const { readJson, requireAuth, sendJson, config, maxBodyBytes } = ctx;
+export async function handleV2Routes(req, res, url, ctx) {
+  const {
+    readJson,
+    requireAuth,
+    sendJson,
+    config,
+    federation,
+    jacobianTune,
+    beliefGraph,
+    resonant,
+    buildSecurityStatus,
+    accessLogPath,
+    chatOpen,
+    requireQuorum,
+    tlsHandle,
+    codingQuorum
+  } = ctx;
 
   if (req.method === 'GET' && url.pathname === '/api/v1/federation/snapshot') {
-    return sendJson(res, 200, await ctx.federation.snapshot());
+    return sendJson(res, 200, await federation.snapshot());
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/jacobian/weights') {
-    return sendJson(res, 200, await ctx.jacobianTune.getWeights());
+    return sendJson(res, 200, await jacobianTune.getWeights());
   }
 
+  // Mutating v2 routes expect requireAuth already applied by caller for POST,
+  // except we enforce here for clarity when invoked before global POST auth.
   if (req.method === 'POST' && url.pathname === '/api/v1/federation/publish') {
     requireAuth(req, config.apiToken);
-    const beliefSnapshot = ctx.beliefGraph.snapshot();
-    const spectrum = ctx.resonant.getSpectrum();
-    const security = await ctx.buildSecurityStatus({
-      accessLogPath: ctx.accessLogPath,
-      chatOpen: ctx.chatOpen,
-      requireQuorum: ctx.requireQuorum,
+    const beliefSnapshot = beliefGraph.snapshot();
+    const spectrum = resonant.getSpectrum();
+    const security = await buildSecurityStatus({
+      accessLogPath,
+      chatOpen,
+      requireQuorum,
       apiTokenConfigured: Boolean(config.apiToken)
     });
     const digest = FederationHub.buildDigest({
@@ -49,39 +65,37 @@ export async function handleV2Routes(req, res, url, body, ctx) {
       spectrum,
       securitySeverity: security.severity
     });
-    return sendJson(res, 200, await ctx.federation.publish(digest));
+    return sendJson(res, 200, await federation.publish(digest));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/federation/ingest') {
     requireAuth(req, config.apiToken);
-    const b = body || (await readJson(req, maxBodyBytes));
-    return sendJson(res, 200, await ctx.federation.ingestPeer(b.peerId, b.digest));
+    const b = await readJson(req, config.maxBodyBytes);
+    return sendJson(res, 200, await federation.ingestPeer(b.peerId, b.digest));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/jacobian/outcome') {
     requireAuth(req, config.apiToken);
-    const b = body || (await readJson(req, maxBodyBytes));
-    return sendJson(res, 200, await ctx.jacobianTune.recordOutcome(b));
+    const b = await readJson(req, config.maxBodyBytes);
+    return sendJson(res, 200, await jacobianTune.recordOutcome(b));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/cockpit/action') {
     requireAuth(req, config.apiToken);
-    const b = body || (await readJson(req, maxBodyBytes));
+    const b = await readJson(req, config.maxBodyBytes);
     const result = await runCockpitAction(b.action, b, {
-      tlsHandle: ctx.tlsHandle?.current,
-      beliefGraph: ctx.beliefGraph,
-      codingQuorum: ctx.codingQuorum,
-      federation: ctx.federation,
-      jacobianTune: ctx.jacobianTune,
-      resonant: ctx.resonant,
-      buildSecurityStatus: ctx.buildSecurityStatus,
-      accessLogPath: ctx.accessLogPath,
-      chatOpen: ctx.chatOpen,
-      requireQuorum: ctx.requireQuorum,
+      tlsHandle: tlsHandle?.current,
+      beliefGraph,
+      codingQuorum,
+      federation,
+      jacobianTune,
+      resonant,
+      buildSecurityStatus,
+      accessLogPath,
+      chatOpen,
+      requireQuorum,
       apiTokenConfigured: Boolean(config.apiToken),
       seedBeliefField
     });
     return sendJson(res, 200, { action: b.action, result });
   }
 
-  return null;
+  return false;
 }
-
-import { FederationHub } from './federation/digest-exchange.mjs';

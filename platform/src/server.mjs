@@ -24,6 +24,7 @@ import { buildSecurityStatus } from "./security/status.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
 import { codingQuorumLocal, codingQuorumFull } from "./workflows/templates.mjs";
+import { bootV2, enhanceCodingQuorumOptions, handleV2Routes } from "./server-v2-boot.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(here, "../dashboard");
@@ -41,6 +42,7 @@ const graph = new KnowledgeGraph(config.graphFile);
 
 const resonant = new ResonantBridge({ label: "control12-platform" });
 const beliefGraph = new BeliefGraph({ resonant, maxNodes: 32 });
+const { federation, jacobianTune } = bootV2({ config });
 
 const strictAllowlist = process.env.CONTROL12_CODE_STRICT_ALLOWLIST === "1";
 const coding = new CodingAgent({
@@ -58,7 +60,7 @@ const coding = new CodingAgent({
 });
 
 const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant, coding });
-const codingQuorum = new CodingQuorum({ agents, coding, bus });
+const codingQuorum = new CodingQuorum(enhanceCodingQuorumOptions({ agents, coding, bus }, config));
 const chatWire = new ChatWire({ resonant, beliefGraph });
 
 const artifacts = new ArtifactBuilder({ artifactDir: config.artifactDir, bus });
@@ -78,6 +80,7 @@ const supervisor = new RuntimeSupervisor({ config, bus, agents, registry, schedu
 await policy.load();
 await fs.mkdir(codeWorkspace, { recursive: true });
 await fs.mkdir(config.root, { recursive: true });
+await fs.mkdir(config.attestationDir, { recursive: true });
 
 const beliefSeed = seedBeliefField(beliefGraph);
 
@@ -122,6 +125,14 @@ await registry.register({
 });
 await graph.upsertNode({ id: "chat.wire", type: "bridge", purpose: "chat wire" });
 
+await registry.register({
+  id: "federation.hub",
+  version: config.version,
+  kind: "federation",
+  capabilities: ["federation.publish", "federation.ingest"],
+  purpose: "Cross-node belief/spectrum digest exchange without workspace sharing."
+});
+
 bus.subscribe("*", event => appendJsonLine(config.auditFile, { type: "event", event }));
 
 async function serveDashboard(res, pathname) {
@@ -151,6 +162,23 @@ function authMeta(req) {
 
 const tlsHandle = { current: null };
 
+const v2ctx = () => ({
+  readJson,
+  requireAuth,
+  sendJson,
+  config,
+  federation,
+  jacobianTune,
+  beliefGraph,
+  resonant,
+  buildSecurityStatus,
+  accessLogPath,
+  chatOpen,
+  requireQuorum,
+  tlsHandle,
+  codingQuorum
+});
+
 const handler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${config.host}:${config.port}`}`);
   accessLog.instrument(req, res, {
@@ -170,7 +198,8 @@ const handler = async (req, res) => {
         requireQuorum,
         accessLog: accessLogPath,
         mtls: process.env.CONTROL12_MTLS === "1",
-        dualCa: Boolean(tlsHandle.current?.dualCa)
+        dualCa: Boolean(tlsHandle.current?.dualCa),
+        version: config.version
       });
     }
     if (req.method === "GET" && url.pathname === "/api/v1/security/status") {
@@ -182,6 +211,10 @@ const handler = async (req, res) => {
       });
       return sendJson(res, 200, status);
     }
+
+    const v2 = await handleV2Routes(req, res, url, v2ctx());
+    if (v2 !== false) return v2;
+
     if (req.method === "GET" && url.pathname === "/api/v1/components") return sendJson(res, 200, await registry.list());
     if (req.method === "GET" && url.pathname === "/api/v1/agents") return sendJson(res, 200, agents.list());
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
