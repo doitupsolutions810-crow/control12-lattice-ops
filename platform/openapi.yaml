@@ -1,0 +1,65 @@
+openapi: 3.1.0
+info:
+  title: CONTROL12 Sovereign Platform API
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:4400
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '200': { description: Runtime health }
+  /api/v1/agents:
+    get:
+      operationId: listAgents
+      responses:
+        '200': { description: Core agent registry }
+  /api/v1/components:
+    get:
+      operationId: listComponents
+      responses:
+        '200': { description: Registered components }
+    post:
+      operationId: registerComponent
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Component' }
+      responses:
+        '201': { description: Component registered }
+  /api/v1/workflows:
+    get:
+      operationId: listWorkflows
+      responses:
+        '200': { description: Workflows }
+    post:
+      operationId: submitWorkflow
+      security: [{ bearerAuth: [] }]
+      responses:
+        '202': { description: Workflow queued }
+  /api/v1/workflows/{id}/run:
+    post:
+      operationId: runWorkflow
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Workflow result }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  schemas:
+    Component:
+      type: object
+      required: [id, version, kind]
+      properties:
+        id: { type: string }
+        version: { type: string }
+        kind: { type: string }
+        capabilities: { type: array, items: { type: string } }

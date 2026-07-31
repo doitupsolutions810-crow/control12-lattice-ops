@@ -1,0 +1,1 @@
+{"id":"planner","role":"governance","purpose":"Decompose goals and define evidence requirements.","capabilities":["workflow.submit","agent.invoke"]}

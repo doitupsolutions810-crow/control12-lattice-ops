@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "control12.component/v1",
+  "type": "object",
+  "required": ["id", "version", "kind"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9._-]+$" },
+    "version": { "type": "string" },
+    "kind": { "enum": ["agent", "plugin", "service", "artifact", "policy"] },
+    "capabilities": { "type": "array", "items": { "type": "string" } }
+  }
+}

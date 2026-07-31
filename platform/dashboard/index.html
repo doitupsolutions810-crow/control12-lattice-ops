@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CONTROL12 Sovereign Platform</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header><div><span class="eyebrow">CONTROL12</span><h1>Sovereign Platform</h1></div><div id="health" class="status">Connecting</div></header>
+  <main>
+    <section class="hero"><div><h2>Evidence-grounded AI operations</h2><p>Five governing agents coordinate workflows, artifacts, policies, deployments, and knowledge.</p></div><button id="refresh">Refresh state</button></section>
+    <section class="grid">
+      <article><h3>Core agents</h3><div id="agents" class="stack"></div></article>
+      <article><h3>Components</h3><div id="components" class="metric">0</div><p>Registered and digest-addressed.</p></article>
+      <article><h3>Workflows</h3><div id="workflows" class="metric">0</div><p>Queued, running, completed, or failed.</p></article>
+      <article><h3>Dependency</h3><div id="dependency" class="stack"></div></article>
+    </section>
+    <section class="panel"><h3>Submit workflow</h3><form id="workflow-form"><input name="name" value="Readiness review" required><textarea name="message" required>Inspect the system and report evidence-backed readiness.</textarea><button>Submit and run</button></form><pre id="output">No workflow submitted.</pre></section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
