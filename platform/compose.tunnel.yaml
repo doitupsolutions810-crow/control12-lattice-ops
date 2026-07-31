@@ -1,0 +1,15 @@
+# Optional overlay: docker compose -f compose.yaml -f compose.tunnel.yaml up
+# Requires cloudflared image and a pre-created named tunnel + credentials mount.
+#
+# Quick tunnels (trycloudflare.com) are better run via scripts/tunnel.sh on the host
+# because the public URL is ephemeral and must be copied to Vercel env.
+
+services:
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://platform:4400
+    depends_on:
+      - platform
+    # Quick tunnel logs the public URL to container logs:
+    #   docker compose -f compose.yaml -f compose.tunnel.yaml logs -f tunnel

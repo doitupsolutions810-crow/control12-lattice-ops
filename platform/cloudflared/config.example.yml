@@ -1,0 +1,25 @@
+# Named tunnel example for CONTROL12 platform.
+#
+# Setup:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create control12-platform
+#   3. cloudflared tunnel route dns control12-platform platform.example.com
+#   4. Copy this file to config.yml (or ~/.cloudflared/config.yml)
+#   5. Set tunnel: <UUID from step 2>
+#   6. Set credentials-file to the JSON written by cloudflared
+#   7. bash scripts/tunnel-named.sh
+#
+# Platform should run with:
+#   CONTROL12_CHAT_OPEN=1   # optional for session/turn without bearer
+#   CONTROL12_PLATFORM_TOKEN=<secret>  # still required for code/* routes
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /home/YOU/.cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: platform.example.com
+    service: http://127.0.0.1:4400
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 10s
+  - service: http_status:404

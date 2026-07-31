@@ -6,8 +6,11 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node src/server.mjs",
+    "start:chat-open": "CONTROL12_CHAT_OPEN=1 node src/server.mjs",
     "check": "node --check src/server.mjs && find src test -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check",
     "test": "node --test test/*.test.mjs",
-    "smoke": "bash scripts/smoke-test.sh"
+    "smoke": "bash scripts/smoke-test.sh",
+    "tunnel": "bash scripts/tunnel.sh",
+    "tunnel:named": "bash scripts/tunnel-named.sh"
   }
 }
