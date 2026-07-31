@@ -1,0 +1,98 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "onboarding": false,
+  "configMigration": false,
+  "requireConfig": "required",
+  "timezone": "America/New_York",
+  "schedule": [
+    "after 10pm every weekday",
+    "before 6am every weekday",
+    "every weekend"
+  ],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group GitHub Actions and pin SHAs",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "groupName": "github-actions"
+    },
+    {
+      "description": "Do not open major bumps for core Actions",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": [
+        "actions/checkout",
+        "actions/setup-node",
+        "pnpm/action-setup"
+      ],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Auto-merge all patch updates during maintenance windows",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false,
+      "automergeStrategy": "squash",
+      "automergeSchedule": [
+        "after 10pm every weekday",
+        "before 6am every weekday",
+        "every weekend"
+      ]
+    },
+    {
+      "description": "Auto-merge minor updates for npm and Actions during maintenance windows",
+      "matchUpdateTypes": ["minor"],
+      "matchManagers": ["npm", "github-actions"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false,
+      "automergeStrategy": "squash",
+      "automergeSchedule": [
+        "after 10pm every weekday",
+        "before 6am every weekday",
+        "every weekend"
+      ]
+    },
+    {
+      "description": "Never auto-merge major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Auto-merge lockfile maintenance",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false,
+      "automergeStrategy": "squash",
+      "automergeSchedule": [
+        "after 10pm every weekday",
+        "before 6am every weekday",
+        "every weekend"
+      ]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "dependencies"],
+    "automerge": true,
+    "automergeType": "pr",
+    "platformAutomerge": false,
+    "automergeStrategy": "squash",
+    "automergeSchedule": ["at any time"],
+    "vulnerabilityFixStrategy": "lowest"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  }
+}
