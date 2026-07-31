@@ -1,0 +1,16 @@
+{
+  "schema": "control12.policy/v1",
+  "subjects": {
+    "default": { "allow": ["agent.invoke", "artifact.build", "workflow.submit"], "deny": ["deployment.execute"] },
+    "planner": { "allow": ["agent.invoke", "workflow.submit"], "deny": ["deployment.execute"] },
+    "engineer": { "allow": ["agent.invoke", "artifact.build", "workflow.submit"], "deny": ["deployment.execute"] },
+    "artifact": { "allow": ["artifact.build", "registry.write"], "deny": ["deployment.execute"] },
+    "operations": { "allow": ["agent.invoke", "artifact.build", "deployment.execute"], "deny": [] },
+    "verifier": { "allow": ["*"], "deny": [] }
+  },
+  "environments": {
+    "development": { "approvalRequiredAt": "critical" },
+    "staging": { "approvalRequiredAt": "high" },
+    "production": { "approvalRequiredAt": "medium" }
+  }
+}
