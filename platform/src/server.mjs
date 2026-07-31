@@ -19,6 +19,7 @@ import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from "./http/router.mjs";
 import { AccessLog } from "./http/access-log.mjs";
 import { createAppServer } from "./http/create-server.mjs";
+import { buildSecurityStatus } from "./security/status.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
 import { codingQuorumLocal, codingQuorumFull } from "./workflows/templates.mjs";
@@ -167,6 +168,15 @@ const handler = async (req, res) => {
         accessLog: accessLogPath,
         mtls: process.env.CONTROL12_MTLS === "1"
       });
+    }
+    if (req.method === "GET" && url.pathname === "/api/v1/security/status") {
+      const status = await buildSecurityStatus({
+        accessLogPath,
+        chatOpen,
+        requireQuorum,
+        apiTokenConfigured: Boolean(config.apiToken)
+      });
+      return sendJson(res, 200, status);
     }
     if (req.method === "GET" && url.pathname === "/api/v1/components") return sendJson(res, 200, await registry.list());
     if (req.method === "GET" && url.pathname === "/api/v1/agents") return sendJson(res, 200, agents.list());
