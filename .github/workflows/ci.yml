@@ -14,8 +14,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  preflight:
+    name: Repository preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has-node: ${{ steps.detect.outputs.has-node }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Validate Renovate JSON
+        run: python3 -m json.tool renovate.json >/dev/null
+
+      - name: Validate Python syntax
+        run: |
+          find . -path './.git' -prune -o -type f -name '*.py' -print0 \
+            | xargs -0 -r python3 -m py_compile
+
+      - name: Validate shell syntax
+        run: |
+          find . -path './.git' -prune -o -type f -name '*.sh' -print0 \
+            | xargs -0 -r -n1 bash -n
+
+      - name: Detect npm workspace
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package.json ]]; then
+            [[ -f pnpm-lock.yaml ]] || {
+              echo '::error::package.json exists but pnpm-lock.yaml is missing'
+              exit 1
+            }
+            echo 'has-node=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'has-node=false' >> "$GITHUB_OUTPUT"
+            echo 'No package.json found; Node matrix will be skipped.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   test:
     name: Test (Node ${{ matrix.node-version }})
+    needs: preflight
+    if: needs.preflight.outputs.has-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
