@@ -2,12 +2,14 @@ import { JsonStore } from "../lib/json-store.mjs";
 import { randomId } from "../lib/hash.mjs";
 
 export class WorkflowScheduler {
-  constructor({ file, bus, agents, artifacts, deployments, maxConcurrent = 4 }) {
+  constructor({ file, bus, agents, artifacts, deployments, coding = null, codingQuorum = null, maxConcurrent = 4 }) {
     this.store = new JsonStore(file, { schema: "control12.workflows/v1", workflows: {} });
     this.bus = bus;
     this.agents = agents;
     this.artifacts = artifacts;
     this.deployments = deployments;
+    this.coding = coding;
+    this.codingQuorum = codingQuorum;
     this.maxConcurrent = maxConcurrent;
     this.running = 0;
   }
@@ -76,6 +78,31 @@ export class WorkflowScheduler {
         return this.deployments.plan(step.input);
       case "emit":
         return this.bus.publish(step.topic, step.payload || {});
+      case "code":
+        if (!this.coding) throw new Error("coding agent not configured");
+        if (step.action === "write") {
+          return this.coding.writeFile(step.path, step.content ?? "");
+        }
+        if (step.action === "execute") {
+          return this.coding.execute(step.command, { cwd: step.cwd ?? null });
+        }
+        if (step.action === "produce") {
+          return this.coding.produceAndRun({
+            path: step.path,
+            content: step.content ?? "",
+            command: step.command ?? null
+          });
+        }
+        throw new Error(`unsupported code action: ${step.action}`);
+      case "coding-quorum":
+        if (!this.codingQuorum) throw new Error("coding quorum not configured");
+        return this.codingQuorum.run({
+          goal: step.goal || context.goal || "",
+          path: step.path ?? null,
+          content: step.content ?? null,
+          command: step.command ?? null,
+          skipRemoteAgents: Boolean(step.skipRemoteAgents)
+        });
       default:
         throw new Error(`unsupported workflow step type: ${step.type}`);
     }

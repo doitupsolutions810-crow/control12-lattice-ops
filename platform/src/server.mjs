@@ -7,8 +7,10 @@ import { MessageBus } from "./bus/message-bus.mjs";
 import { CapabilityPolicyEngine } from "./policy/capability-engine.mjs";
 import { ComponentRegistry } from "./registry/component-registry.mjs";
 import { KnowledgeGraph } from "./graph/knowledge-graph.mjs";
+import { BeliefGraph } from "./graph/belief-graph.mjs";
 import { AgentSDK } from "./agents/agent-sdk.mjs";
 import { CodingAgent } from "./agents/coding-agent.mjs";
+import { CodingQuorum } from "./agents/coding-quorum.mjs";
 import { ArtifactBuilder } from "./artifacts/artifact-builder.mjs";
 import { DeploymentCoordinator } from "./deployment/deployment-coordinator.mjs";
 import { WorkflowScheduler } from "./scheduler/workflow-scheduler.mjs";
@@ -16,6 +18,7 @@ import { RuntimeSupervisor } from "./runtime/runtime-supervisor.mjs";
 import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, sendJson } from "./http/router.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
+import { ChatWire } from "./bridge/chat-wire.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(here, "../dashboard");
@@ -28,7 +31,9 @@ const registry = new ComponentRegistry(config.registryFile);
 const graph = new KnowledgeGraph(config.graphFile);
 
 const resonant = new ResonantBridge({ label: "control12-platform" });
+const beliefGraph = new BeliefGraph({ resonant, maxNodes: 32 });
 
+// Unrestricted allowlist by default. Set CONTROL12_CODE_STRICT_ALLOWLIST=1 to enable.
 const strictAllowlist = process.env.CONTROL12_CODE_STRICT_ALLOWLIST === "1";
 const coding = new CodingAgent({
   workspaceRoot: codeWorkspace,
@@ -45,6 +50,9 @@ const coding = new CodingAgent({
 });
 
 const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant, coding });
+const codingQuorum = new CodingQuorum({ agents, coding, bus });
+const chatWire = new ChatWire({ resonant, beliefGraph });
+
 const artifacts = new ArtifactBuilder({ artifactDir: config.artifactDir, bus });
 const deployments = new DeploymentCoordinator({ policy, bus, executor: config.deployExecutor });
 const scheduler = new WorkflowScheduler({
@@ -53,6 +61,8 @@ const scheduler = new WorkflowScheduler({
   agents,
   artifacts,
   deployments,
+  coding,
+  codingQuorum,
   maxConcurrent: config.maxConcurrentWorkflows
 });
 const supervisor = new RuntimeSupervisor({ config, bus, agents, registry, scheduler });
@@ -78,10 +88,28 @@ await registry.register({
   id: "code.workspace",
   version: config.version,
   kind: "code",
-  capabilities: ["code.write", "code.edit", "code.execute"],
-  purpose: "Sandboxed coding agent with policy-bounded terminal execution via local-agent."
+  capabilities: ["code.write", "code.edit", "code.execute", "code.quorum"],
+  purpose: "Sandboxed coding agent with policy-bounded terminal and coding quorum loop."
 });
 await graph.upsertNode({ id: "code.workspace", type: "code", purpose: "coding agent workspace" });
+
+await registry.register({
+  id: "belief.graph",
+  version: config.version,
+  kind: "graph",
+  capabilities: ["belief.upsert", "belief.link", "belief.tick"],
+  purpose: "Multi-node belief field with relational coupling into ResonantBridge."
+});
+await graph.upsertNode({ id: "belief.graph", type: "graph", purpose: "multi-belief field" });
+
+await registry.register({
+  id: "chat.wire",
+  version: config.version,
+  kind: "bridge",
+  capabilities: ["chat.session", "chat.turn"],
+  purpose: "Avrone/Vercel chat wiring to lattice spectrum and tools."
+});
+await graph.upsertNode({ id: "chat.wire", type: "bridge", purpose: "chat wire" });
 
 bus.subscribe("*", event => appendJsonLine(config.auditFile, { type: "event", event }));
 
@@ -111,7 +139,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
     if (req.method === "GET" && url.pathname === "/api/v1/graph") return sendJson(res, 200, await graph.snapshot());
     if (req.method === "GET" && url.pathname === "/api/v1/code/policy") {
-      return sendJson(res, 200, coding.getPolicySnapshot());
+      return sendJson(res, 200, {
+        ...coding.getPolicySnapshot(),
+        allowlistMode: strictAllowlist ? "strict" : "unrestricted"
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/api/v1/audio/state") {
@@ -121,11 +152,20 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, resonant.getSpectrum());
     }
     if (req.method === "GET" && url.pathname === "/api/v1/audio/prompt") {
-      return sendJson(res, 200, { fragment: resonant.toPromptFragment() });
+      return sendJson(res, 200, {
+        fragment: [resonant.toPromptFragment(), beliefGraph.toPromptFragment()].join(" ")
+      });
     }
     if (req.method === "GET" && url.pathname === "/api/v1/audio/history") {
       const limit = Number(url.searchParams.get("limit") || 8);
       return sendJson(res, 200, resonant.getHistory(limit));
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/v1/belief/snapshot") {
+      return sendJson(res, 200, beliefGraph.snapshot());
+    }
+    if (req.method === "GET" && url.pathname === "/api/v1/chat/tools") {
+      return sendJson(res, 200, { tools: ChatWire.toolDescriptors() });
     }
 
     if (req.method === "POST") requireAuth(req, config.apiToken);
@@ -140,6 +180,44 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, resonant.silence());
     }
 
+    // Belief graph
+    if (req.method === "POST" && url.pathname === "/api/v1/belief/node") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, beliefGraph.upsertNode(body.id, {
+        belief: body.belief,
+        label: body.label
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/belief/link") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, beliefGraph.link(body.a, body.b, body.weight));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/belief/set") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, beliefGraph.setBelief(body.id, body.belief));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/belief/tick") {
+      return sendJson(res, 200, beliefGraph.tickAll());
+    }
+
+    // Chat wiring
+    if (req.method === "POST" && url.pathname === "/api/v1/chat/session") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 201, chatWire.createSession({
+        label: body.label,
+        belief: body.belief,
+        nodeId: body.nodeId
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/chat/turn") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, chatWire.prepareTurn(body.sessionId, {
+        message: body.message,
+        belief: body.belief
+      }));
+    }
+
+    // Code + quorum
     if (req.method === "POST" && url.pathname === "/api/v1/code/write") {
       const body = await readJson(req, config.maxBodyBytes);
       return sendJson(res, 200, await coding.writeFile(body.path, body.content ?? ""));
@@ -164,6 +242,16 @@ const server = http.createServer(async (req, res) => {
         path: body.path,
         content: body.content ?? "",
         command: body.command ?? null
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/code/quorum") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await codingQuorum.run({
+        goal: body.goal,
+        path: body.path ?? null,
+        content: body.content ?? null,
+        command: body.command ?? null,
+        skipRemoteAgents: Boolean(body.skipRemoteAgents)
       }));
     }
     if (req.method === "POST" && url.pathname === "/api/v1/terminal") {
@@ -215,5 +303,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(config.port, config.host, () => {
   console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${config.host}:${config.port}`);
   console.log(`Code workspace: ${codeWorkspace}`);
-  console.log(`Code policy: ${JSON.stringify(coding.getPolicySnapshot())}`);
+  console.log(`Code policy: ${JSON.stringify({ ...coding.getPolicySnapshot(), allowlistMode: strictAllowlist ? "strict" : "unrestricted" })}`);
 });
