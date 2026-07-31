@@ -8,6 +8,7 @@ import { CapabilityPolicyEngine } from "./policy/capability-engine.mjs";
 import { ComponentRegistry } from "./registry/component-registry.mjs";
 import { KnowledgeGraph } from "./graph/knowledge-graph.mjs";
 import { AgentSDK } from "./agents/agent-sdk.mjs";
+import { CodingAgent } from "./agents/coding-agent.mjs";
 import { ArtifactBuilder } from "./artifacts/artifact-builder.mjs";
 import { DeploymentCoordinator } from "./deployment/deployment-coordinator.mjs";
 import { WorkflowScheduler } from "./scheduler/workflow-scheduler.mjs";
@@ -19,16 +20,21 @@ import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(here, "../dashboard");
 const policyFile = process.env.CONTROL12_POLICY_FILE || path.resolve(here, "../policies/default.json");
+const codeWorkspace = process.env.CONTROL12_CODE_WORKSPACE || path.join(config.root, "workspace");
 
 const bus = new MessageBus({ eventFile: config.eventFile });
 const policy = new CapabilityPolicyEngine({ policyFile });
 const registry = new ComponentRegistry(config.registryFile);
 const graph = new KnowledgeGraph(config.graphFile);
 
-// Shared living intermediate for agents + chatbot coherence
 const resonant = new ResonantBridge({ label: "control12-platform" });
+const coding = new CodingAgent({
+  workspaceRoot: codeWorkspace,
+  localAgentUrl: config.localAgentUrl,
+  bus
+});
 
-const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant });
+const agents = new AgentSDK({ baseUrl: config.localAgentUrl, bus, resonant, coding });
 const artifacts = new ArtifactBuilder({ artifactDir: config.artifactDir, bus });
 const deployments = new DeploymentCoordinator({ policy, bus, executor: config.deployExecutor });
 const scheduler = new WorkflowScheduler({
@@ -42,20 +48,30 @@ const scheduler = new WorkflowScheduler({
 const supervisor = new RuntimeSupervisor({ config, bus, agents, registry, scheduler });
 
 await policy.load();
+await fs.mkdir(codeWorkspace, { recursive: true });
+
 for (const [id, purpose] of Object.entries(agents.list())) {
   await registry.register({ id: `agent.${id}`, version: config.version, kind: "agent", capabilities: ["agent.invoke"], purpose });
   await graph.upsertNode({ id: `agent.${id}`, type: "agent", purpose });
 }
 
-// Register audio component for observability
 await registry.register({
   id: "audio.living-intermediate",
   version: config.version,
   kind: "audio",
-  capabilities: ["audio.tick", "audio.spectrum", "audio.silence"],
-  purpose: "Additive synthesis organ of attention; belief-driven partials for chatbot and agent coherence."
+  capabilities: ["audio.tick", "audio.spectrum", "audio.silence", "audio.jacobian"],
+  purpose: "Additive synthesis organ of attention; belief Jacobian-driven partials for chatbot and agent coherence."
 });
 await graph.upsertNode({ id: "audio.living-intermediate", type: "audio", purpose: "living intermediate" });
+
+await registry.register({
+  id: "code.workspace",
+  version: config.version,
+  kind: "code",
+  capabilities: ["code.write", "code.edit", "code.execute"],
+  purpose: "Sandboxed coding agent with terminal execution via local-agent."
+});
+await graph.upsertNode({ id: "code.workspace", type: "code", purpose: "coding agent workspace" });
 
 bus.subscribe("*", event => appendJsonLine(config.auditFile, { type: "event", event }));
 
@@ -68,7 +84,7 @@ async function serveDashboard(res, pathname) {
     const body = await fs.readFile(file);
     const ext = path.extname(file);
     const type = ext === ".html" ? "text/html" : ext === ".css" ? "text/css" : "text/javascript";
-    res.writeHead(200, { "content-type": `${type}; charset=utf-8", "cache-control": "no-store" });
+    res.writeHead(200, { "content-type": `${type}; charset=utf-8`, "cache-control": "no-store" });
     res.end(body);
     return true;
   } catch {
@@ -85,7 +101,6 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/v1/workflows") return sendJson(res, 200, await scheduler.list());
     if (req.method === "GET" && url.pathname === "/api/v1/graph") return sendJson(res, 200, await graph.snapshot());
 
-    // Audio / living intermediate surfaces (read-mostly; tick requires auth)
     if (req.method === "GET" && url.pathname === "/api/v1/audio/state") {
       return sendJson(res, 200, resonant.getState());
     }
@@ -106,11 +121,42 @@ const server = http.createServer(async (req, res) => {
       const body = await readJson(req, config.maxBodyBytes);
       const belief = body.belief != null ? Number(body.belief) : 0.5;
       const other = body.otherBelief != null ? Number(body.otherBelief) : null;
-      const snapshot = resonant.tick(belief, other);
-      return sendJson(res, 200, snapshot);
+      return sendJson(res, 200, resonant.tick(belief, other));
     }
     if (req.method === "POST" && url.pathname === "/api/v1/audio/silence") {
       return sendJson(res, 200, resonant.silence());
+    }
+
+    // Coding agent surfaces
+    if (req.method === "POST" && url.pathname === "/api/v1/code/write") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.writeFile(body.path, body.content ?? ""));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/code/edit") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.editFile(body.path, body.oldString, body.newString, {
+        replaceAll: Boolean(body.replaceAll)
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/code/read") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.readFile(body.path));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/code/list") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.listFiles(body.path || "."));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/code/produce") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.produceAndRun({
+        path: body.path,
+        content: body.content ?? "",
+        command: body.command ?? null
+      }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/terminal") {
+      const body = await readJson(req, config.maxBodyBytes);
+      return sendJson(res, 200, await coding.execute(body.command, { cwd: body.cwd ?? null }));
     }
 
     if (req.method === "POST" && url.pathname === "/api/v1/components") {
@@ -147,4 +193,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, config.host, () => {
   console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${config.host}:${config.port}`);
+  console.log(`Code workspace: ${codeWorkspace}`);
 });

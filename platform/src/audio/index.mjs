@@ -6,3 +6,4 @@
 export { LivingIntermediate } from './living-intermediate.mjs';
 export { LivingIntermediate as default } from './living-intermediate.mjs';
 export { ResonantBridge } from './resonant-bridge.mjs';
+export { evaluateBeliefJacobian, integrateBeliefStep } from './jacobian.mjs';
