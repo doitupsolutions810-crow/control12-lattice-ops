@@ -7,10 +7,8 @@ on:
       - "local-agent/**"
       - ".github/workflows/control12-image.yml"
   push:
-    branches:
-      - main
-    tags:
-      - "local-agent-v*"
+    branches: [main]
+    tags: ["local-agent-v*"]
     paths:
       - "local-agent/**"
       - ".github/workflows/control12-image.yml"
@@ -20,6 +18,7 @@ permissions:
   packages: write
   attestations: write
   id-token: write
+  artifact-metadata: write
 
 concurrency:
   group: control12-image-${{ github.ref }}
@@ -32,7 +31,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -51,10 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker buildx create \
-            --name control12-builder \
-            --driver docker-container \
-            --use
+          docker buildx create --name control12-builder --driver docker-container --use
           docker buildx inspect --bootstrap
 
       - name: Log in to GHCR
@@ -62,11 +57,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$GH_TOKEN" | docker login ghcr.io \
-            --username "${{ github.actor }}" \
-            --password-stdin
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Build pull-request image
         if: github.event_name == 'pull_request'
@@ -78,21 +69,18 @@ jobs:
             --build-arg "CONTROL12_VERSION=${{ steps.version.outputs.value }}" \
             --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --label "org.opencontainers.image.revision=${{ github.sha }}" \
-            --tag "control12-local-agent:test" \
-            --load \
-            local-agent
-          docker run --rm --entrypoint node \
-            control12-local-agent:test \
-            --check /home/control12/.control12/app/server.mjs
+            --tag control12-local-agent:test \
+            --load local-agent
+          docker run --rm --entrypoint node control12-local-agent:test --check /home/control12/.control12/app/server.mjs
 
       - name: Build and push multi-platform image
+        id: publish
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           version="${{ steps.version.outputs.value }}"
           short_sha="${GITHUB_SHA::12}"
-
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --build-arg "CONTROL12_VERSION=$version" \
@@ -104,15 +92,32 @@ jobs:
             --tag "$IMAGE:latest" \
             --attest type=provenance,mode=max \
             --attest type=sbom \
-            --push \
-            local-agent
-
+            --push local-agent
           digest="$(docker buildx imagetools inspect "$IMAGE:$version" | awk '/^Digest:/ {print $2; exit}')"
-          test -n "$digest"
+          test "${digest#sha256:}" != "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "immutable=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Generate registry-attached GitHub provenance attestation
+        if: github.event_name != 'pull_request'
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - name: Independently verify provenance attestation
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMMUTABLE_IMAGE: ${{ steps.publish.outputs.immutable }}
+        run: |
+          set -euo pipefail
+          gh attestation verify "oci://$IMMUTABLE_IMAGE" --repo "$GITHUB_REPOSITORY"
           {
-            echo "## CONTROL12 image published"
+            echo "## CONTROL12 local-agent image verified"
             echo
-            echo "- Image: \`$IMAGE:$version\`"
-            echo "- Digest: \`$digest\`"
-            echo "- Immutable: \`$IMAGE@$digest\`"
+            echo "- Immutable image: \`$IMMUTABLE_IMAGE\`"
+            echo "- Provenance issuer: GitHub Actions OIDC"
+            echo "- Verification: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
