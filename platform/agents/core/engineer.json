@@ -1,0 +1,1 @@
+{"id":"engineer","role":"implementation","purpose":"Implement and verify code and runtime behavior.","capabilities":["agent.invoke","artifact.build"]}
