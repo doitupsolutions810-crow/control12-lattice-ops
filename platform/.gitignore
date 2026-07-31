@@ -1,4 +1,5 @@
 .control12-platform/
+!.control12-platform/known-remotes.example.txt
 node_modules/
 *.log
 .env

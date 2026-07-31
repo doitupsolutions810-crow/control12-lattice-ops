@@ -1,0 +1,6 @@
+# Copy to known-remotes.txt (gitignored under .control12-platform/) one IP or CIDR-ish token per line.
+# Used by scripts/analyze-access-anomalies.sh as an allowlist.
+# Example:
+# 127.0.0.1
+# ::1
+# 203.0.113.10

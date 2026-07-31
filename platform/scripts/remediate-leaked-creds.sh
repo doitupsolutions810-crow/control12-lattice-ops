@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Remediation checklist + assisted steps when tunnel credentials may be leaked.
-# Does NOT call Cloudflare API (requires human login). Prints ordered actions.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,18 +10,17 @@ echo " CONTROL12 leaked tunnel credential remediation"
 echo "=============================================="
 echo
 echo "1. STOP exposure"
-echo "   - Kill cloudflared: pkill -f 'cloudflared tunnel' || true"
-echo "   - Stop platform if CHAT_OPEN was enabled without token"
+echo "   pkill -f 'cloudflared tunnel' || true"
+echo "   # stop platform if CHAT_OPEN was enabled without token"
 echo
 echo "2. REVOKE Cloudflare tunnel"
 echo "   cloudflared tunnel list"
-echo "   cloudflared tunnel cleanup <NAME_OR_UUID>"
 echo "   cloudflared tunnel delete <NAME_OR_UUID>"
-echo "   # In Zero Trust dashboard: delete Access apps bound to the hostname"
+echo "   # Zero Trust dashboard: delete Access apps for the hostname"
 echo
-echo "3. ROTATE local credentials"
+echo "3. ROTATE local tunnel credentials"
 echo "   rm -f ~/.cloudflared/<OLD_UUID>.json"
-echo "   # Optionally rotate login cert (re-login):"
+echo "   # optional re-login:"
 echo "   #   mv ~/.cloudflared/cert.pem ~/.cloudflared/cert.pem.compromised.\$(date +%Y%m%d)"
 echo "   #   cloudflared tunnel login"
 echo "   cloudflared tunnel create control12-platform"
@@ -31,30 +29,32 @@ echo
 echo "4. ROTATE platform token"
 NEW_TOKEN="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | xxd -p)"
 echo "   export CONTROL12_PLATFORM_TOKEN=$NEW_TOKEN"
-echo "   # Update Vercel env CONTROL12_PLATFORM_TOKEN to the same value"
-echo "   # Unset CONTROL12_CHAT_OPEN on any public hostname"
+echo "   # Update Vercel CONTROL12_PLATFORM_TOKEN"
+echo "   # Unset CONTROL12_CHAT_OPEN on public hostnames"
 echo
-echo "5. ROTATE mTLS material (if used)"
-echo "   rm -rf ~/.control12-mtls && bash $ROOT/scripts/gen-mtls-certs.sh"
-echo "   # Update cloudflared origin client cert/key paths"
+echo "5. ROTATE mTLS (automated)"
+echo "   bash $ROOT/scripts/rotate-mtls-certs.sh --force"
+echo "   # restart platform + update cloudflared client cert paths"
 echo
-echo "6. AUDIT access logs"
+echo "6. AUDIT + ANOMALIES"
 echo "   bash $ROOT/scripts/audit-access-logs.sh"
-echo "   # Look for unexpected remotes, 401 spikes, code/* hits"
+echo "   bash $ROOT/scripts/analyze-access-anomalies.sh"
+echo "   bash $ROOT/scripts/parse-access-log.sh summary"
+echo "   bash $ROOT/scripts/parse-access-log.sh sensitive"
 echo
 echo "7. REBUILD tunnel"
-echo "   # Update config.yml with new UUID + credentials-file"
+echo "   # update config.yml with new UUID + credentials-file"
 echo "   cloudflared tunnel route dns control12-platform <hostname>"
-echo "   npm run tunnel:check && npm run tunnel:named"
+echo "   bash $ROOT/scripts/check-tunnel-creds.sh"
+echo "   npm run tunnel:named"
 echo
 echo "8. VERIFY"
 echo "   curl -fsS https://<hostname>/health"
-echo "   # Confirm Vercel CONTROL12_PLATFORM_URL still correct"
-echo "   # Confirm CHAT_OPEN=0 and bearer required"
+echo "   bash $ROOT/scripts/security-pass.sh"
 echo
-echo "--- optional: mark local state ---"
+echo "--- writing local remediation marker ---"
 mkdir -p "$STATE"
-printf '%s\n' "{\"remediationStartedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"newTokenHint\":\"set in shell above\"}" > "$STATE/remediation-last.json"
+printf '%s\n' "{\"remediationStartedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$STATE/remediation-last.json"
 chmod 600 "$STATE/remediation-last.json" 2>/dev/null || true
 echo "Wrote $STATE/remediation-last.json"
-echo "Done printing runbook. Execute steps 1–8 in order."
+echo "Execute steps 1–8 in order."

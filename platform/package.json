@@ -18,6 +18,7 @@
     "tunnel:parse": "bash scripts/parse-access-log.sh",
     "tunnel:remediate": "bash scripts/remediate-leaked-creds.sh",
     "mtls:gen": "bash scripts/gen-mtls-certs.sh",
-    "mtls:rotate": "bash scripts/rotate-mtls-certs.sh"
+    "mtls:rotate": "bash scripts/rotate-mtls-certs.sh",
+    "security:pass": "bash scripts/security-pass.sh"
   }
 }
