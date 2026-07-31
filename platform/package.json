@@ -1,6 +1,6 @@
 {
   "name": "@control12/sovereign-platform",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },
@@ -24,6 +24,7 @@
     "mtls:finalize": "bash scripts/finalize-mtls-overlap.sh",
     "mtls:cutover": "bash scripts/mtls-cutover.sh",
     "mesh:seed": "bash scripts/seed-session-mesh.sh",
+    "renew:loop": "bash scripts/renew-respond-loop.sh",
     "security:pass": "bash scripts/security-pass.sh",
     "security:status": "bash scripts/security-status.sh"
   }

@@ -1,26 +1,14 @@
-/**
- * CodingQuorum – full loop: plan → engineer → code → terminal → verify
- *
- * Uses AgentSDK roles where available; coder path is local (CodingAgent).
- * Verifier step records evidence keys from terminal/write results only.
- */
+import { buildEvidenceRecord, assertEvidenceReady } from '../policy/evidence.mjs';
+import { sealEvent } from '../attestation/seal.mjs';
 
 export class CodingQuorum {
-  constructor({ agents, coding, bus = null }) {
+  constructor({ agents, coding, bus = null, attestationDir = null }) {
     this.agents = agents;
     this.coding = coding;
     this.bus = bus;
+    this.attestationDir = attestationDir;
   }
 
-  /**
-   * @param {{
-   *   goal: string,
-   *   path?: string,
-   *   content?: string,
-   *   command?: string|null,
-   *   skipRemoteAgents?: boolean
-   * }}
-   */
   async run({ goal, path = null, content = null, command = null, skipRemoteAgents = false }) {
     if (!goal || typeof goal !== 'string') {
       throw Object.assign(new Error('goal is required'), { statusCode: 400 });
@@ -34,7 +22,6 @@ export class CodingQuorum {
       await this.bus.publish('coding-quorum.started', { goal: goal.slice(0, 200) });
     }
 
-    // 1. Planner
     let plan = null;
     if (!skipRemoteAgents && this.agents) {
       try {
@@ -46,18 +33,15 @@ export class CodingQuorum {
         evidence.push({ key: 'planner.response', present: false, error: error.message });
       }
     } else {
-      plan = { status: 'skipped', note: 'remote planner skipped' };
       results.push({ role: 'planner', status: 'skipped' });
     }
 
-    // 2. Engineer
-    let engineer = null;
     if (!skipRemoteAgents && this.agents) {
       try {
         const msg = plan?.content
           ? `Goal: ${goal}\nPlan context: ${String(plan.content).slice(0, 1500)}`
           : goal;
-        engineer = await this.agents.invoke('engineer', msg, { includeEvidence: false, timeoutMs: 120000 });
+        const engineer = await this.agents.invoke('engineer', msg, { includeEvidence: false, timeoutMs: 120000 });
         results.push({ role: 'engineer', status: 'ok', result: engineer });
         evidence.push({ key: 'engineer.response', present: Boolean(engineer) });
       } catch (error) {
@@ -68,7 +52,6 @@ export class CodingQuorum {
       results.push({ role: 'engineer', status: 'skipped' });
     }
 
-    // 3. Coder write / produce
     let codeResult = null;
     if (path != null && content != null) {
       try {
@@ -111,22 +94,16 @@ export class CodingQuorum {
         evidence.push({ key: 'coder.terminal', present: false, error: error.message });
       }
     } else {
-      results.push({
-        role: 'coder',
-        status: 'skipped',
-        note: 'provide path+content and/or command to exercise coder'
-      });
+      results.push({ role: 'coder', status: 'skipped' });
     }
 
-    // 4. Verifier (evidence-grounded summary; remote if available)
-    const evidenceText = JSON.stringify(evidence);
     let verification = null;
     if (!skipRemoteAgents && this.agents) {
       try {
         const vmsg =
           `Verify coding quorum for goal: ${goal}\n` +
           `Use only this EVIDENCE JSON. Reject unsupported success claims.\n` +
-          evidenceText;
+          JSON.stringify(evidence);
         verification = await this.agents.invoke('verifier', vmsg, {
           includeEvidence: false,
           timeoutMs: 120000
@@ -136,7 +113,6 @@ export class CodingQuorum {
         results.push({ role: 'verifier', status: 'failed', error: error.message });
       }
     } else {
-      // Local structural verification only
       const failed = evidence.filter(e => e.present === false);
       const terminalFail =
         codeResult?.execution &&
@@ -150,21 +126,62 @@ export class CodingQuorum {
       results.push({ role: 'verifier', status: 'local', result: verification });
     }
 
-    const completedAt = new Date().toISOString();
+    const evidenceRecord = buildEvidenceRecord({
+      kind: 'coding-quorum',
+      subject: goal.slice(0, 200),
+      policyDecision: {
+        requireQuorum: process.env.CONTROL12_CODE_REQUIRE_QUORUM === '1',
+        decision: verification?.decision || null
+      },
+      tests: codeResult?.execution
+        ? { exitCode: codeResult.execution.code ?? null, present: true }
+        : null,
+      digests: {
+        writePath: path,
+        evidenceKeys: evidence.map(e => e.key)
+      },
+      extra: { startedAt, verification }
+    });
+
+    const readiness = assertEvidenceReady(evidenceRecord, {
+      requirePolicy: true,
+      requireTests: Boolean(command)
+    });
+
+    let attestation = null;
+    try {
+      attestation = await sealEvent({
+        kind: 'coding-quorum',
+        payload: {
+          goal: goal.slice(0, 200),
+          decision: verification?.decision,
+          evidenceDigest: evidenceRecord.recordDigest,
+          readiness
+        },
+        outDir: this.attestationDir
+      });
+    } catch {
+      /* non-fatal */
+    }
+
     const summary = {
       status: 'CODING_QUORUM_COMPLETE',
       startedAt,
-      completedAt,
+      completedAt: new Date().toISOString(),
       goal,
       evidence,
       results,
-      verification
+      verification,
+      evidenceRecord,
+      readiness,
+      attestation
     };
 
     if (this.bus) {
       await this.bus.publish('coding-quorum.completed', {
         goal: goal.slice(0, 200),
-        decision: verification?.decision || verification?.status || null
+        decision: verification?.decision || null,
+        evidenceDigest: evidenceRecord.recordDigest
       });
     }
 
