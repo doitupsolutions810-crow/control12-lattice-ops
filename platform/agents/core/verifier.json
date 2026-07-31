@@ -1,0 +1,1 @@
+{"id":"verifier","role":"governance","purpose":"Reject unsupported claims and approve promotion gates.","capabilities":["policy.evaluate","registry.read","workflow.inspect"]}
