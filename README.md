@@ -34,6 +34,21 @@ Consoles and status surfaces live on Vercel:
 - `control12_audit_export.py` / `control12_backup.py`
 - live-*-integration harnesses
 
+## CONTROL12 Local Agent
+
+`local-agent/` contains the repaired and upgraded macOS runtime:
+
+- CONTROL12 v0.8.0 localhost service
+- five specialized agents: planner, engineer, artifact, operations, verifier
+- fast chat and evidence-grounded quorum modes
+- individual evidence-grounded agent execution
+- persistent JSONL memory and bounded local terminal execution
+- live evidence, health, agent, and capability endpoints
+- reproducible Homebrew installer and lifecycle controller
+- macOS GitHub Actions syntax and source tests
+
+See [`local-agent/README.md`](local-agent/README.md) for installation and operation.
+
 ## Phase 4 — Cognitive Sync
 
 Ghost Shell Sentience HUD (trait mapping overlay) is prepared and ready for deployment under the GhostShell / primary team surfaces. Mapping rules:
@@ -47,6 +62,7 @@ Ghost Shell Sentience HUD (trait mapping overlay) is prepared and ready for depl
 - No credentials or regional signing keys are stored in this repository.
 - Workers expect secrets via environment / mounted files (`CONTROL12_TOKEN_FILE`, region keys, etc.).
 - All evidence archives intentionally exclude credential values.
+- The local agent binds to `127.0.0.1`; do not expose its terminal endpoint to untrusted networks.
 
 ## License / Lineage
 
