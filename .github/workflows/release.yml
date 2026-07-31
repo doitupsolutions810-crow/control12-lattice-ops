@@ -14,8 +14,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Release preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      publishable: ${{ steps.package.outputs.publishable }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Detect publishable npm package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package.json && -f pnpm-lock.yaml ]]; then
+            echo 'publishable=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publishable=false' >> "$GITHUB_OUTPUT"
+            echo 'No package.json and pnpm-lock.yaml pair found; npm publication skipped.' \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   publish:
     name: Publish to npm
+    needs: preflight
+    if: needs.preflight.outputs.publishable == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: release
