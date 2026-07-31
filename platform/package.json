@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "start:chat-open": "CONTROL12_CHAT_OPEN=1 node src/server.mjs",
+    "start:prod": "node --env-file=profiles/production.env src/server.mjs",
     "check": "node --check src/server.mjs && find src test -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check",
     "test": "node --test test/*.test.mjs",
     "smoke": "bash scripts/smoke-test.sh",
@@ -21,6 +22,8 @@
     "mtls:rotate": "bash scripts/rotate-mtls-certs.sh",
     "mtls:verify": "bash scripts/verify-mtls-certs.sh",
     "mtls:finalize": "bash scripts/finalize-mtls-overlap.sh",
+    "mtls:cutover": "bash scripts/mtls-cutover.sh",
+    "mesh:seed": "bash scripts/seed-session-mesh.sh",
     "security:pass": "bash scripts/security-pass.sh",
     "security:status": "bash scripts/security-status.sh"
   }

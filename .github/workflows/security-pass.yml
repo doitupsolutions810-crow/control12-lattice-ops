@@ -1,0 +1,38 @@
+name: security-pass
+
+on:
+  push:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/security-pass.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+  schedule:
+    - cron: '30 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  platform-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Smoke
+        run: npm run smoke
+      - name: Anomaly script (empty log OK)
+        run: |
+          mkdir -p .control12-platform
+          touch .control12-platform/access.jsonl
+          bash scripts/analyze-access-anomalies.sh .control12-platform/access.jsonl || true
+      - name: Security pass (soft)
+        run: bash scripts/security-pass.sh || true
