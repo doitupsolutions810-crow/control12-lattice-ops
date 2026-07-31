@@ -1,0 +1,1 @@
+{"id":"vercel","version":"2.0.0","builtin":true,"provider":"Vercel","capabilities":["project.read","deployment.write","logs.read"],"allowedHosts":["api.vercel.com"],"auth":{"type":"bearer","secretEnv":"VERCEL_TOKEN"},"baseUrl":"https://api.vercel.com/","allowedMethods":["GET","POST","PATCH","DELETE"],"timeoutMs":120000,"maxResponseBytes":1000000}

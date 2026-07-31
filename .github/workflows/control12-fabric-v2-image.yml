@@ -1,0 +1,42 @@
+name: CONTROL12 Sovereign Fabric v2 Image
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["fabric-v*"]
+    paths: ["fabric/**", ".github/workflows/control12-fabric-v2-image.yml"]
+permissions: {contents: read, packages: write, id-token: write, attestations: write}
+concurrency:
+  group: control12-fabric-image-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - name: Create Buildx builder
+        run: docker buildx create --use --driver docker-container && docker buildx inspect --bootstrap
+      - name: Authenticate to GHCR
+        env: {GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and publish
+        env: {IMAGE: "ghcr.io/${{ github.repository_owner }}/control12-sovereign-fabric"}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./fabric/package.json').version")"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag "$IMAGE:$version" \
+            --tag "$IMAGE:sha-${GITHUB_SHA::12}" \
+            --tag "$IMAGE:latest" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$version" \
+            --attest type=sbom \
+            --attest type=provenance,mode=max \
+            --push fabric
+          digest="$(docker buildx imagetools inspect "$IMAGE:$version" | awk '/^Digest:/ {print $2; exit}')"
+          test -n "$digest"
+          echo "Immutable image: $IMAGE@$digest" >> "$GITHUB_STEP_SUMMARY"

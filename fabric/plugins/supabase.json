@@ -1,0 +1,1 @@
+{"id":"supabase","version":"2.0.0","builtin":true,"provider":"Supabase","capabilities":["database.read","database.write","function.deploy"],"allowedHosts":["api.supabase.com"],"auth":{"type":"bearer","secretEnv":"SUPABASE_ACCESS_TOKEN"},"baseUrl":"https://api.supabase.com/","allowedMethods":["GET","POST","PATCH","DELETE"],"timeoutMs":120000,"maxResponseBytes":1000000}

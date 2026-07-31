@@ -1,0 +1,18 @@
+openapi: 3.1.0
+info: {title: CONTROL12 Sovereign Fabric API, version: 2.0.0}
+servers: [{url: http://127.0.0.1:4500}]
+components:
+  securitySchemes: {bearerAuth: {type: http, scheme: bearer}}
+paths:
+  /health: {get: {responses: {'200': {description: healthy}}}}
+  /ready: {get: {responses: {'200': {description: ready}, '503': {description: ledger verification failed}}}}
+  /api/v2/system: {get: {security: [{bearerAuth: []}], responses: {'200': {description: system state}}}}
+  /api/v2/workflows:
+    get: {security: [{bearerAuth: []}], responses: {'200': {description: tenant workflows}}}
+    post: {security: [{bearerAuth: []}], responses: {'202': {description: workflow accepted}}}
+  /api/v2/approvals:
+    get: {security: [{bearerAuth: []}], responses: {'200': {description: approvals}}}
+    post: {security: [{bearerAuth: []}], responses: {'201': {description: approval created}}}
+  /api/v2/workers: {get: {security: [{bearerAuth: []}], responses: {'200': {description: workers and tasks}}}}
+  /api/v2/artifacts: {post: {security: [{bearerAuth: []}], responses: {'201': {description: artifact stored}}}}
+  /api/v2/deployments/plan: {post: {security: [{bearerAuth: []}], responses: {'200': {description: policy evaluated deployment plan}}}}
