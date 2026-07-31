@@ -19,6 +19,7 @@
     "tunnel:remediate": "bash scripts/remediate-leaked-creds.sh",
     "mtls:gen": "bash scripts/gen-mtls-certs.sh",
     "mtls:rotate": "bash scripts/rotate-mtls-certs.sh",
+    "mtls:verify": "bash scripts/verify-mtls-certs.sh",
     "security:pass": "bash scripts/security-pass.sh",
     "security:status": "bash scripts/security-status.sh"
   }
