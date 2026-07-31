@@ -1,0 +1,10 @@
+replicaCount: 3
+image:
+  repository: ghcr.io/doitupsolutions810-crow/control12-sovereign-fabric
+  digest: "sha256:REPLACE_ME"
+service: {port: 4500}
+resources:
+  requests: {cpu: 250m, memory: 256Mi}
+  limits: {cpu: "2", memory: 1Gi}
+secrets:
+  existingSecret: sovereign-fabric-secrets

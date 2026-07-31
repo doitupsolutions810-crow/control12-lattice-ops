@@ -1,0 +1,27 @@
+name: CONTROL12 Sovereign Fabric v2 CI
+on:
+  pull_request:
+    paths: ["fabric/**", ".github/workflows/control12-fabric-v2-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["fabric/**", ".github/workflows/control12-fabric-v2-ci.yml"]
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency:
+  group: control12-fabric-v2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults: {run: {working-directory: fabric}}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with: {node-version: "22"}
+      - run: npm run check
+      - run: npm test
+      - run: npm run smoke
+      - run: docker build -t control12-sovereign-fabric:test .
+      - run: docker run --rm --entrypoint node control12-sovereign-fabric:test --check src/server.mjs

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: control12-sovereign-fabric
+version: 2.0.0
+appVersion: "2.0.0"
+type: application

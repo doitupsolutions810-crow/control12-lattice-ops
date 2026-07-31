@@ -1,0 +1,1 @@
+{"id":"replit","version":"2.0.0","builtin":true,"provider":"Replit","capabilities":["workspace.write","deployment.write"],"allowedHosts":["replit.com"],"auth":{"type":"oauth","secretEnv":"REPLIT_TOKEN"},"baseUrl":"https://replit.com/","allowedMethods":["GET","POST","PATCH","DELETE"],"timeoutMs":120000,"maxResponseBytes":1000000}

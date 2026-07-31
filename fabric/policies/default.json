@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "capabilities": {
+    "workflow.write": {"scope":"workflow.write","approvals":{"development":0,"staging":0,"production":1},"riskApprovals":{"low":0,"medium":1,"high":2}},
+    "artifact.write": {"scope":"artifact.write","approvals":{"development":0,"staging":0,"production":0},"riskApprovals":{"low":0,"medium":0,"high":1}},
+    "plugin.write": {"scope":"plugin.write","approvals":{"development":0,"staging":1,"production":2},"riskApprovals":{"low":0,"medium":1,"high":2}},
+    "deployment.write": {"scope":"deployment.write","approvals":{"development":0,"staging":1,"production":2},"riskApprovals":{"low":0,"medium":1,"high":2}},
+    "plugin.invoke": {"scope":"plugin.invoke","approvals":{"development":0,"staging":1,"production":2},"riskApprovals":{"low":0,"medium":1,"high":2}}
+  }
+}

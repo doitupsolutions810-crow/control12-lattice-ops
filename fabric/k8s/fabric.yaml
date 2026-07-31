@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata: {name: control12}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: sovereign-fabric, namespace: control12}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: sovereign-fabric, namespace: control12}
+spec:
+  replicas: 3
+  selector: {matchLabels: {app: sovereign-fabric}}
+  template:
+    metadata: {labels: {app: sovereign-fabric}}
+    spec:
+      serviceAccountName: sovereign-fabric
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: fabric
+          image: ghcr.io/doitupsolutions810-crow/control12-sovereign-fabric@sha256:REPLACE_ME
+          ports: [{containerPort: 4500}]
+          env:
+            - {name: CONTROL12_FABRIC_HOST, value: "0.0.0.0"}
+            - {name: CONTROL12_FABRIC_ROOT, value: "/state"}
+            - {name: CONTROL12_ENVIRONMENT, value: "production"}
+            - {name: CONTROL12_FABRIC_SECRET, valueFrom: {secretKeyRef: {name: sovereign-fabric-secrets, key: fabric-secret}}}
+            - {name: CONTROL12_BOOTSTRAP_SECRET, valueFrom: {secretKeyRef: {name: sovereign-fabric-secrets, key: bootstrap-secret}}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          resources: {requests: {cpu: 250m, memory: 256Mi}, limits: {cpu: "2", memory: 1Gi}}
+          readinessProbe: {httpGet: {path: /ready, port: 4500}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: 4500}, periodSeconds: 15}
+          volumeMounts: [{name: state, mountPath: /state}, {name: tmp, mountPath: /tmp}]
+      volumes: [{name: state, persistentVolumeClaim: {claimName: sovereign-fabric-state}}, {name: tmp, emptyDir: {medium: Memory, sizeLimit: 64Mi}}]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: sovereign-fabric-state, namespace: control12}
+spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 20Gi}}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: sovereign-fabric, namespace: control12}
+spec: {selector: {app: sovereign-fabric}, ports: [{port: 4500, targetPort: 4500}]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: sovereign-fabric, namespace: control12}
+spec: {minAvailable: 2, selector: {matchLabels: {app: sovereign-fabric}}}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: sovereign-fabric, namespace: control12}
+spec: {scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: sovereign-fabric}, minReplicas: 3, maxReplicas: 20, metrics: [{type: Resource, resource: {name: cpu, target: {type: Utilization, averageUtilization: 65}}}]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny, namespace: control12}
+spec: {podSelector: {}, policyTypes: [Ingress, Egress]}

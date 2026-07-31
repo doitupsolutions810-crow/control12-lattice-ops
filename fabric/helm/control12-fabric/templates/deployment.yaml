@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: {{ .Release.Name }}}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector: {matchLabels: {app: {{ .Release.Name }}}}
+  template:
+    metadata: {labels: {app: {{ .Release.Name }}}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: fabric
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          ports: [{containerPort: 4500}]
+          env:
+            - {name: CONTROL12_FABRIC_HOST, value: "0.0.0.0"}
+            - {name: CONTROL12_FABRIC_ROOT, value: "/state"}
+            - {name: CONTROL12_ENVIRONMENT, value: "production"}
+            - {name: CONTROL12_FABRIC_SECRET, valueFrom: {secretKeyRef: {name: {{ .Values.secrets.existingSecret }}, key: fabric-secret}}}
+            - {name: CONTROL12_BOOTSTRAP_SECRET, valueFrom: {secretKeyRef: {name: {{ .Values.secrets.existingSecret }}, key: bootstrap-secret}}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+          readinessProbe: {httpGet: {path: /ready, port: 4500}}
+          livenessProbe: {httpGet: {path: /health, port: 4500}}
+          volumeMounts: [{name: state, mountPath: /state}, {name: tmp, mountPath: /tmp}]
+      volumes: [{name: state, emptyDir: {}}, {name: tmp, emptyDir: {medium: Memory, sizeLimit: 64Mi}}]
