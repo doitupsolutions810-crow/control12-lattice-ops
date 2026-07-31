@@ -8,6 +8,7 @@ import { CapabilityPolicyEngine } from "./policy/capability-engine.mjs";
 import { ComponentRegistry } from "./registry/component-registry.mjs";
 import { KnowledgeGraph } from "./graph/knowledge-graph.mjs";
 import { BeliefGraph } from "./graph/belief-graph.mjs";
+import { seedBeliefField } from "./graph/seed-belief-field.mjs";
 import { AgentSDK } from "./agents/agent-sdk.mjs";
 import { CodingAgent } from "./agents/coding-agent.mjs";
 import { CodingQuorum } from "./agents/coding-quorum.mjs";
@@ -19,11 +20,13 @@ import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, sendJson } from "./http/router.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
+import { codingQuorumLocal, codingQuorumFull } from "./workflows/templates.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dashboardDir = path.resolve(here, "../dashboard");
 const policyFile = process.env.CONTROL12_POLICY_FILE || path.resolve(here, "../policies/default.json");
 const codeWorkspace = process.env.CONTROL12_CODE_WORKSPACE || path.join(config.root, "workspace");
+const requireQuorum = process.env.CONTROL12_CODE_REQUIRE_QUORUM === "1";
 
 const bus = new MessageBus({ eventFile: config.eventFile });
 const policy = new CapabilityPolicyEngine({ policyFile });
@@ -33,7 +36,6 @@ const graph = new KnowledgeGraph(config.graphFile);
 const resonant = new ResonantBridge({ label: "control12-platform" });
 const beliefGraph = new BeliefGraph({ resonant, maxNodes: 32 });
 
-// Unrestricted allowlist by default. Set CONTROL12_CODE_STRICT_ALLOWLIST=1 to enable.
 const strictAllowlist = process.env.CONTROL12_CODE_STRICT_ALLOWLIST === "1";
 const coding = new CodingAgent({
   workspaceRoot: codeWorkspace,
@@ -69,6 +71,8 @@ const supervisor = new RuntimeSupervisor({ config, bus, agents, registry, schedu
 
 await policy.load();
 await fs.mkdir(codeWorkspace, { recursive: true });
+
+const beliefSeed = seedBeliefField(beliefGraph);
 
 for (const [id, purpose] of Object.entries(agents.list())) {
   await registry.register({ id: `agent.${id}`, version: config.version, kind: "agent", capabilities: ["agent.invoke"], purpose });
@@ -141,7 +145,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/v1/code/policy") {
       return sendJson(res, 200, {
         ...coding.getPolicySnapshot(),
-        allowlistMode: strictAllowlist ? "strict" : "unrestricted"
+        allowlistMode: strictAllowlist ? "strict" : "unrestricted",
+        requireQuorum
       });
     }
 
@@ -180,7 +185,6 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, resonant.silence());
     }
 
-    // Belief graph
     if (req.method === "POST" && url.pathname === "/api/v1/belief/node") {
       const body = await readJson(req, config.maxBodyBytes);
       return sendJson(res, 200, beliefGraph.upsertNode(body.id, {
@@ -200,13 +204,12 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, beliefGraph.tickAll());
     }
 
-    // Chat wiring
     if (req.method === "POST" && url.pathname === "/api/v1/chat/session") {
       const body = await readJson(req, config.maxBodyBytes);
       return sendJson(res, 201, chatWire.createSession({
         label: body.label,
         belief: body.belief,
-        nodeId: body.nodeId
+        nodeId: body.nodeId ?? "avrone"
       }));
     }
     if (req.method === "POST" && url.pathname === "/api/v1/chat/turn") {
@@ -217,9 +220,16 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
-    // Code + quorum
     if (req.method === "POST" && url.pathname === "/api/v1/code/write") {
       const body = await readJson(req, config.maxBodyBytes);
+      if (requireQuorum) {
+        return sendJson(res, 200, await codingQuorum.run({
+          goal: body.goal || `write ${body.path}`,
+          path: body.path,
+          content: body.content ?? "",
+          skipRemoteAgents: true
+        }));
+      }
       return sendJson(res, 200, await coding.writeFile(body.path, body.content ?? ""));
     }
     if (req.method === "POST" && url.pathname === "/api/v1/code/edit") {
@@ -238,6 +248,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/api/v1/code/produce") {
       const body = await readJson(req, config.maxBodyBytes);
+      if (requireQuorum) {
+        return sendJson(res, 200, await codingQuorum.run({
+          goal: body.goal || `produce ${body.path}`,
+          path: body.path,
+          content: body.content ?? "",
+          command: body.command ?? null,
+          skipRemoteAgents: true
+        }));
+      }
       return sendJson(res, 200, await coding.produceAndRun({
         path: body.path,
         content: body.content ?? "",
@@ -253,6 +272,20 @@ const server = http.createServer(async (req, res) => {
         command: body.command ?? null,
         skipRemoteAgents: Boolean(body.skipRemoteAgents)
       }));
+    }
+    if (req.method === "POST" && url.pathname === "/api/v1/workflows/from-template") {
+      const body = await readJson(req, config.maxBodyBytes);
+      let definition;
+      if (body.template === "coding-quorum-full") {
+        definition = codingQuorumFull(body);
+      } else {
+        definition = codingQuorumLocal(body);
+      }
+      const workflow = await scheduler.submit(definition);
+      if (body.run === true) {
+        return sendJson(res, 200, await scheduler.run(workflow.id));
+      }
+      return sendJson(res, 202, workflow);
     }
     if (req.method === "POST" && url.pathname === "/api/v1/terminal") {
       const body = await readJson(req, config.maxBodyBytes);
@@ -303,5 +336,10 @@ const server = http.createServer(async (req, res) => {
 server.listen(config.port, config.host, () => {
   console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${config.host}:${config.port}`);
   console.log(`Code workspace: ${codeWorkspace}`);
-  console.log(`Code policy: ${JSON.stringify({ ...coding.getPolicySnapshot(), allowlistMode: strictAllowlist ? "strict" : "unrestricted" })}`);
+  console.log(`Belief field nodes: ${beliefSeed.snapshot.nodes.map(n => n.id).join(", ")}`);
+  console.log(`Code policy: ${JSON.stringify({
+    ...coding.getPolicySnapshot(),
+    allowlistMode: strictAllowlist ? "strict" : "unrestricted",
+    requireQuorum
+  })}`);
 });

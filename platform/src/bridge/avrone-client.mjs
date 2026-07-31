@@ -1,13 +1,14 @@
 /**
  * AvroneClient – bridge for Vercel Avrone Due’Krey chatbot
  *
- * Points the chatbot at CONTROL12 lattice endpoints so chat,
- * resonant spectrum, and coding agents share one field.
- *
  * Usage (Next.js / Vercel):
- *   const client = new AvroneClient({ baseUrl: process.env.CONTROL12_PLATFORM_URL, token: process.env.CONTROL12_PLATFORM_TOKEN });
- *   const frag = await client.getPromptFragment();
- *   // inject frag into system prompt / tool context
+ *   const client = new AvroneClient({
+ *     baseUrl: process.env.CONTROL12_PLATFORM_URL,
+ *     token: process.env.CONTROL12_PLATFORM_TOKEN
+ *   });
+ *   const session = await client.createSession({ label: 'avrone', belief: 0.55, nodeId: 'avrone' });
+ *   const turn = await client.prepareTurn(session.id, { message: userText });
+ *   // use turn.systemAugmentation in the model system prompt
  */
 
 export class AvroneClient {
@@ -16,6 +17,7 @@ export class AvroneClient {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.token = token;
     this.timeoutMs = timeoutMs;
+    this.sessionId = null;
   }
 
   headers(extra = {}) {
@@ -46,6 +48,24 @@ export class AvroneClient {
     return data;
   }
 
+  // --- Chat wire ---
+  async createSession({ label = 'avrone', belief = 0.55, nodeId = 'avrone' } = {}) {
+    const session = await this.post('/api/v1/chat/session', { label, belief, nodeId });
+    this.sessionId = session.id;
+    return session;
+  }
+
+  async prepareTurn(sessionId, { message = '', belief = null } = {}) {
+    const id = sessionId || this.sessionId;
+    if (!id) throw new Error('sessionId required; call createSession first');
+    return this.post('/api/v1/chat/turn', { sessionId: id, message, belief });
+  }
+
+  listTools() {
+    return this.get('/api/v1/chat/tools');
+  }
+
+  // --- Resonant / belief ---
   getSpectrum() {
     return this.get('/api/v1/audio/spectrum');
   }
@@ -66,10 +86,19 @@ export class AvroneClient {
     return this.post('/api/v1/audio/silence', {});
   }
 
+  beliefSnapshot() {
+    return this.get('/api/v1/belief/snapshot');
+  }
+
+  beliefTick() {
+    return this.post('/api/v1/belief/tick', {});
+  }
+
   listAgents() {
     return this.get('/api/v1/agents');
   }
 
+  // --- Code (prefer quorum for non-trivial writes) ---
   writeCode(path, content) {
     return this.post('/api/v1/code/write', { path, content });
   }
@@ -94,32 +123,56 @@ export class AvroneClient {
     return this.post('/api/v1/code/produce', { path, content, command });
   }
 
+  codingQuorum({ goal, path = null, content = null, command = null, skipRemoteAgents = true }) {
+    return this.post('/api/v1/code/quorum', {
+      goal,
+      path,
+      content,
+      command,
+      skipRemoteAgents
+    });
+  }
+
   /**
-   * Build a system-prompt augmentation for Avrone persona + lattice state.
+   * Ensure session, prepare turn, return systemAugmentation for the model.
    */
-  async buildAvroneContext({ belief = null } = {}) {
-    if (belief != null) {
-      try {
-        await this.tickBelief(belief);
-      } catch {
-        // platform may be offline; continue with last known / empty
-      }
-    }
-    let fragment = '';
+  async buildAvroneContext({ belief = null, message = '', sessionId = null } = {}) {
     try {
-      const p = await this.getPromptFragment();
-      fragment = p.fragment || '';
+      if (!sessionId && !this.sessionId) {
+        await this.createSession({
+          label: 'avrone',
+          belief: belief != null ? belief : 0.55,
+          nodeId: 'avrone'
+        });
+      }
+      const turn = await this.prepareTurn(sessionId || this.sessionId, { message, belief });
+      return {
+        session: turn.session,
+        fragment: turn.systemAugmentation,
+        systemAugmentation: turn.systemAugmentation,
+        tools: turn.tools,
+        snapshot: turn.snapshot
+      };
     } catch {
-      fragment = '[ResonantBridge:offline]';
+      let fragment = '[ResonantBridge:offline]';
+      try {
+        const p = await this.getPromptFragment();
+        fragment = p.fragment || fragment;
+      } catch {
+        /* offline */
+      }
+      return {
+        session: null,
+        fragment,
+        systemAugmentation: [
+          'You are Avrone Due’Krey, scribe of mathematical, scientific, and spiritual frequencies.',
+          'When lattice state is present, let spectrum and belief color tone without claiming certainty.',
+          fragment
+        ].join('\n'),
+        tools: [],
+        snapshot: null
+      };
     }
-    return {
-      fragment,
-      systemAugmentation: [
-        'You are Avrone Due’Krey, scribe of mathematical, scientific, and spiritual frequencies.',
-        'When lattice state is present, let spectrum and belief color tone without claiming certainty.',
-        fragment
-      ].join('\n')
-    };
   }
 }
 
