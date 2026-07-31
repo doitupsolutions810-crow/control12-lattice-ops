@@ -1,9 +1,8 @@
 name: CONTROL12 Local Agent CI
 
-# Automatic triggers are intentionally paused because this repository currently
-# returns GitHub Actions `startup_failure` before creating any job. Re-enable
-# pull_request/push triggers after the repository or account Actions restriction
-# is cleared.
+# Automatic triggers remain paused while issue #3 tracks a repository/account
+# Actions startup_failure that occurs before any job is created. Re-enable
+# pull_request/push triggers after that platform restriction is cleared.
 on:
   workflow_dispatch:
 
@@ -22,13 +21,21 @@ jobs:
       run:
         working-directory: local-agent
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: "22"
+
       - name: Check JavaScript syntax
         run: npm run check
+
       - name: Run source tests
         run: npm test
+
       - name: Check shell syntax
         run: bash -n scripts/install-macos.sh scripts/control12-app
