@@ -18,7 +18,8 @@ import { RuntimeSupervisor } from "./runtime/runtime-supervisor.mjs";
 import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from "./http/router.mjs";
 import { AccessLog } from "./http/access-log.mjs";
-import { createAppServer } from "./http/create-server.mjs";
+import { createAppServer, installTlsReloadSignal } from "./http/create-server.mjs";
+import { resolveTlsPaths } from "./http/tls-material.mjs";
 import { buildSecurityStatus } from "./security/status.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
@@ -148,6 +149,8 @@ function authMeta(req) {
   return hasBearer ? "bearer" : chatOpen ? "chat-open" : "none";
 }
 
+const tlsHandle = { current: null };
+
 const handler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${config.host}:${config.port}`}`);
   accessLog.instrument(req, res, {
@@ -166,7 +169,8 @@ const handler = async (req, res) => {
         chatOpen,
         requireQuorum,
         accessLog: accessLogPath,
-        mtls: process.env.CONTROL12_MTLS === "1"
+        mtls: process.env.CONTROL12_MTLS === "1",
+        dualCa: Boolean(tlsHandle.current?.dualCa)
       });
     }
     if (req.method === "GET" && url.pathname === "/api/v1/security/status") {
@@ -233,6 +237,21 @@ const handler = async (req, res) => {
     }
 
     if (req.method === "POST") requireAuth(req, config.apiToken);
+
+    if (req.method === "POST" && url.pathname === "/api/v1/security/tls/reload") {
+      if (!tlsHandle.current?.setSecureContextFromDisk) {
+        return sendJson(res, 400, { error: "TLS not enabled" });
+      }
+      const result = await tlsHandle.current.setSecureContextFromDisk();
+      tlsHandle.current.dualCa = result.dualCa;
+      try {
+        await fs.unlink(path.join(resolveTlsPaths().dir, "RELOAD_REQUIRED"));
+      } catch {
+        /* optional */
+      }
+      await bus.publish("tls.reloaded", { dualCa: result.dualCa, caCount: result.caCount });
+      return sendJson(res, 200, result);
+    }
 
     if (req.method === "POST" && url.pathname === "/api/v1/audio/tick") {
       const body = await readJson(req, config.maxBodyBytes);
@@ -376,13 +395,16 @@ const handler = async (req, res) => {
   }
 };
 
-const { server, mode, mtls } = createAppServer(handler);
+const handle = createAppServer(handler);
+tlsHandle.current = handle;
+installTlsReloadSignal(handle);
+
 const listenHost = process.env.CONTROL12_PLATFORM_BIND || config.host;
 
-server.listen(config.port, listenHost, () => {
-  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on ${mode}://${listenHost}:${config.port}`);
+handle.server.listen(config.port, listenHost, () => {
+  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on ${handle.mode}://${listenHost}:${config.port}`);
   console.log(`Access log: ${accessLogPath}`);
-  console.log(`mTLS: ${mtls}`);
+  console.log(`mTLS: ${handle.mtls} dualCa: ${handle.dualCa}`);
   console.log(`Code workspace: ${codeWorkspace}`);
   console.log(`Belief field nodes: ${beliefSeed.snapshot.nodes.map(n => n.id).join(", ")}`);
   console.log(`chatOpen=${chatOpen} requireQuorum=${requireQuorum}`);
