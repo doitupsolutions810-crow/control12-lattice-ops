@@ -1,0 +1,12 @@
+{
+  "schema": "control12.plugin/v1",
+  "id": "plugin.openai",
+  "version": "1.0.0",
+  "provider": "openai",
+  "execution": "connector",
+  "requiresApproval": true,
+  "capabilities": ["openai.read", "openai.write"],
+  "network": ["provider-api"],
+  "secrets": ["provider-managed-oauth"],
+  "trust": { "signedManifestRequired": true, "auditRequired": true }
+}
