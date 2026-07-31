@@ -15,11 +15,14 @@ ENV HOME=/home/control12 \
 WORKDIR /home/control12/.control12/app
 
 COPY --chown=control12:control12 src/server.mjs src/cli.mjs ./
+COPY scripts/apply-deterministic-quorum.mjs /usr/local/bin/apply-deterministic-quorum.mjs
 COPY container/entrypoint.sh /usr/local/bin/control12-container-entrypoint
 COPY container/bin/sw_vers /usr/local/bin/sw_vers
 COPY container/bin/sysctl /usr/local/bin/sysctl
 
-RUN chmod 0755 /usr/local/bin/control12-container-entrypoint /usr/local/bin/sw_vers /usr/local/bin/sysctl \
+RUN node /usr/local/bin/apply-deterministic-quorum.mjs /home/control12/.control12/app/server.mjs \
+    && node --check /home/control12/.control12/app/server.mjs \
+    && chmod 0755 /usr/local/bin/control12-container-entrypoint /usr/local/bin/sw_vers /usr/local/bin/sysctl \
     && mkdir -p /home/control12/.control12/state /home/control12/.control12/logs /home/control12/.control12/run \
     && chown -R control12:control12 /home/control12/.control12
 
