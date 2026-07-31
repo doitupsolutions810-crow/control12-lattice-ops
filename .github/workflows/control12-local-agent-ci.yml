@@ -1,0 +1,30 @@
+name: CONTROL12 Local Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "local-agent/**"
+      - ".github/workflows/control12-local-agent-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "local-agent/**"
+      - ".github/workflows/control12-local-agent-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: local-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm run check
+      - run: npm test
+      - run: bash -n scripts/install-macos.sh scripts/control12-app
