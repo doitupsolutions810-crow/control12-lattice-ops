@@ -1,4 +1,3 @@
-import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +17,8 @@ import { WorkflowScheduler } from "./scheduler/workflow-scheduler.mjs";
 import { RuntimeSupervisor } from "./runtime/runtime-supervisor.mjs";
 import { appendJsonLine } from "./lib/json-store.mjs";
 import { readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from "./http/router.mjs";
+import { AccessLog } from "./http/access-log.mjs";
+import { createAppServer } from "./http/create-server.mjs";
 import { ResonantBridge } from "./audio/resonant-bridge.mjs";
 import { ChatWire } from "./bridge/chat-wire.mjs";
 import { codingQuorumLocal, codingQuorumFull } from "./workflows/templates.mjs";
@@ -28,6 +29,8 @@ const policyFile = process.env.CONTROL12_POLICY_FILE || path.resolve(here, "../p
 const codeWorkspace = process.env.CONTROL12_CODE_WORKSPACE || path.join(config.root, "workspace");
 const requireQuorum = process.env.CONTROL12_CODE_REQUIRE_QUORUM === "1";
 const chatOpen = process.env.CONTROL12_CHAT_OPEN === "1";
+const accessLogPath = process.env.CONTROL12_ACCESS_LOG || path.join(config.root, "access.jsonl");
+const accessLog = new AccessLog(accessLogPath);
 
 const bus = new MessageBus({ eventFile: config.eventFile });
 const policy = new CapabilityPolicyEngine({ policyFile });
@@ -72,6 +75,7 @@ const supervisor = new RuntimeSupervisor({ config, bus, agents, registry, schedu
 
 await policy.load();
 await fs.mkdir(codeWorkspace, { recursive: true });
+await fs.mkdir(config.root, { recursive: true });
 
 const beliefSeed = seedBeliefField(beliefGraph);
 
@@ -138,14 +142,31 @@ async function serveDashboard(res, pathname) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+function authMeta(req) {
+  const hasBearer = Boolean((req.headers.authorization || "").match(/^Bearer\s+\S+/i));
+  return hasBearer ? "bearer" : chatOpen ? "chat-open" : "none";
+}
+
+const handler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${config.host}:${config.port}`}`);
+  accessLog.instrument(req, res, {
+    path: url.pathname,
+    auth: authMeta(req),
+    chatOpen
+  });
+
   try {
     if (req.method === "OPTIONS") return sendOptions(res);
 
     if (req.method === "GET" && url.pathname === "/health") {
       const h = await supervisor.health();
-      return sendJson(res, 200, { ...h, chatOpen, requireQuorum });
+      return sendJson(res, 200, {
+        ...h,
+        chatOpen,
+        requireQuorum,
+        accessLog: accessLogPath,
+        mtls: process.env.CONTROL12_MTLS === "1"
+      });
     }
     if (req.method === "GET" && url.pathname === "/api/v1/components") return sendJson(res, 200, await registry.list());
     if (req.method === "GET" && url.pathname === "/api/v1/agents") return sendJson(res, 200, agents.list());
@@ -183,7 +204,6 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { tools: ChatWire.toolDescriptors() });
     }
 
-    // Chat session/turn: open mode or bearer
     if (req.method === "POST" && url.pathname === "/api/v1/chat/session") {
       requireAuthUnlessChatOpen(req, config.apiToken);
       const body = await readJson(req, config.maxBodyBytes);
@@ -344,11 +364,15 @@ const server = http.createServer(async (req, res) => {
     });
     return sendJson(res, status, { error: error.message, code: error.code || undefined });
   }
-});
+};
 
+const { server, mode, mtls } = createAppServer(handler);
 const listenHost = process.env.CONTROL12_PLATFORM_BIND || config.host;
+
 server.listen(config.port, listenHost, () => {
-  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on http://${listenHost}:${config.port}`);
+  console.log(`CONTROL12 Sovereign Platform v${config.version} listening on ${mode}://${listenHost}:${config.port}`);
+  console.log(`Access log: ${accessLogPath}`);
+  console.log(`mTLS: ${mtls}`);
   console.log(`Code workspace: ${codeWorkspace}`);
   console.log(`Belief field nodes: ${beliefSeed.snapshot.nodes.map(n => n.id).join(", ")}`);
   console.log(`chatOpen=${chatOpen} requireQuorum=${requireQuorum}`);

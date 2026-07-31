@@ -12,6 +12,9 @@
     "smoke": "bash scripts/smoke-test.sh",
     "tunnel": "bash scripts/tunnel.sh",
     "tunnel:named": "bash scripts/tunnel-named.sh",
-    "tunnel:check": "bash scripts/check-tunnel-creds.sh"
+    "tunnel:check": "bash scripts/check-tunnel-creds.sh",
+    "tunnel:audit": "bash scripts/audit-access-logs.sh",
+    "tunnel:remediate": "bash scripts/remediate-leaked-creds.sh",
+    "mtls:gen": "bash scripts/gen-mtls-certs.sh"
   }
 }
