@@ -1,0 +1,40 @@
+name: CONTROL12 Local Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "local-agent/**"
+      - ".github/workflows/control12-local-agent-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "local-agent/**"
+      - ".github/workflows/control12-local-agent-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control12-local-agent-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: local-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: local-agent/package.json
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Run source tests
+        run: npm test
+      - name: Check shell syntax
+        run: bash -n scripts/install-macos.sh scripts/control12-app

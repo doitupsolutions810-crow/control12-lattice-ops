@@ -1,0 +1,14 @@
+{
+  "name": "@control12/local-agent",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "check": "node --check src/server.mjs && node --check src/cli.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
