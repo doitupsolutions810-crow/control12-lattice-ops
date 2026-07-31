@@ -1,0 +1,30 @@
+name: CONTROL12 Sovereign Platform CI
+
+on:
+  pull_request:
+    paths: ["platform/**", ".github/workflows/control12-platform-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["platform/**", ".github/workflows/control12-platform-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with: { node-version: "22" }
+      - run: npm run check
+      - run: npm test
+      - run: npm run smoke
+      - run: docker build -t control12-sovereign-platform:test .
+      - run: docker run --rm --entrypoint node control12-sovereign-platform:test --check src/server.mjs
