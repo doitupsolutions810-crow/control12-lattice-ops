@@ -1,2 +1,12 @@
+# Never commit tunnel secrets or local tunnel state
 config.yml
+config.yaml
 *.json
+*.pem
+*.crt
+*.key
+cert.pem
+credentials-*
+*-credentials.json
+.env
+.env.*

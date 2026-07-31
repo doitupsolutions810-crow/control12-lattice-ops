@@ -1,0 +1,10 @@
+.control12-platform/
+node_modules/
+*.log
+.env
+.env.*
+cloudflared/config.yml
+cloudflared/config.yaml
+cloudflared/*.json
+cloudflared/*.pem
+cloudflared/cert.pem
