@@ -27,6 +27,7 @@ NODE="$(brew --prefix node@22)/bin/node"
 
 "$NODE" --check "$SOURCE_DIR/src/server.mjs"
 "$NODE" --check "$SOURCE_DIR/src/cli.mjs"
+"$NODE" --check "$SOURCE_DIR/scripts/apply-deterministic-quorum.mjs"
 bash -n "$SOURCE_DIR/scripts/control12-app"
 
 mkdir -p "$APP" "$BIN" "$ROOT/state" "$ROOT/logs" "$ROOT/run" "$BACKUP"
@@ -42,6 +43,9 @@ install -m 0644 "$SOURCE_DIR/src/cli.mjs" "$APP/cli.mjs"
 install -m 0755 "$SOURCE_DIR/scripts/control12-app" "$BIN/control12-app"
 ln -sf "$BIN/control12-app" "$BIN/control12"
 
+"$NODE" "$SOURCE_DIR/scripts/apply-deterministic-quorum.mjs" "$APP/server.mjs"
+"$NODE" --check "$APP/server.mjs"
+
 PATH_LINE='export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"'
 grep -Fq "$PATH_LINE" "$HOME/.zshrc" 2>/dev/null || printf '\n%s\n' "$PATH_LINE" >> "$HOME/.zshrc"
 
@@ -49,5 +53,17 @@ grep -Fq "$PATH_LINE" "$HOME/.zshrc" 2>/dev/null || printf '\n%s\n' "$PATH_LINE"
 "$BIN/control12-app" doctor
 "$BIN/control12-app" capabilities
 
-echo "CONTROL12 v0.8.0 installed"
+QUORUM_OUT="/tmp/control12-install-quorum.json"
+"$BIN/control12-app" quorum \
+  "Verify the local CONTROL12 installation from collected evidence only." \
+  > "$QUORUM_OUT"
+
+jq -e '
+  .provider == "deterministic-local-evidence" and
+  .synthesis.decision != "UNKNOWN" and
+  (.reports | length) == 5
+' "$QUORUM_OUT" >/dev/null
+
+echo "CONTROL12 v0.8.1 installed"
 echo "Backup: $BACKUP"
+echo "Quorum result: $QUORUM_OUT"
