@@ -1,9 +1,7 @@
 # Avrone ↔ CONTROL12 Lattice Bridge
 
-Provisional integration notes for wiring the Vercel Avrone Due’Krey chatbot
+Integration notes for wiring the Vercel Avrone Due’Krey chatbot
 to the sovereign platform audio + coding surfaces.
-
-Always Believe. Never Know.
 
 ## Endpoints the chatbot can use
 
@@ -51,7 +49,7 @@ Terminal execution is always delegated to **local-agent**
 
 Platform coding routes refuse paths that escape `CONTROL12_CODE_WORKSPACE`.
 
-## Jacobian of belief (provisional)
+## Jacobian of belief
 
 State advances via `integrateBeliefStep` in `platform/src/audio/jacobian.mjs`.
 Spectrum and prompt fragments include a compact jacobian row for agent/LLM context.

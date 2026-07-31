@@ -1,14 +1,12 @@
 /**
  * CodingAgent – write / edit code and execute via local-agent terminal
  *
- * Safety model (provisional, not absolute):
+ * Safety model:
  * - Path confinement under workspace root (relative + .. rejected)
  * - Content size + denied write extensions
  * - Command blocked patterns; optional strict allowlist
  * - Rate limit + concurrent execution cap
  * - Terminal delegated to local-agent (timeout + output bounds)
- *
- * Always Believe. Never Know.
  */
 
 import fs from 'node:fs/promises';
@@ -58,7 +56,6 @@ export class CodingAgent {
     if (typeof oldString !== 'string' || typeof newString !== 'string') {
       this.policy.deny('oldString and newString are required');
     }
-    // Projected size after edit (upper bound: full replace-all expansion)
     const absolute = this.policy.resolveSafe(relPath);
     let content = await fs.readFile(absolute, 'utf8');
     if (!content.includes(oldString)) {
@@ -86,10 +83,6 @@ export class CodingAgent {
     };
   }
 
-  /**
-   * Execute a command via local-agent bounded terminal.
-   * Policy checks run before the request leaves this process.
-   */
   async execute(command, { cwd = null, timeoutMs = 120000 } = {}) {
     this.policy.assertCommandAllowed(command);
     const resolvedCwd = cwd ? this.policy.resolveSafe(cwd) : this.workspaceRoot;

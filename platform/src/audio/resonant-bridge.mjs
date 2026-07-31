@@ -1,12 +1,9 @@
 /**
  * ResonantBridge – Agent & Chatbot surface for LivingIntermediate
  *
- * Provides a stable, non-audio-dependent API that LLM chatbots and
- * CONTROL12 agents can call. Audio rendering is opportunistic:
- * when Web Audio is present it drives partials; otherwise state still
+ * Non-audio-dependent API for LLM chatbots and CONTROL12 agents.
+ * When Web Audio is present it drives partials; otherwise state still
  * evolves for observability and prompt injection.
- *
- * Always Believe. Never Know.
  */
 
 import { LivingIntermediate } from './living-intermediate.mjs';
@@ -28,9 +25,6 @@ export class ResonantBridge {
     return this;
   }
 
-  /**
-   * Primary agent entry: advance belief and return structured status.
-   */
   tick(belief, otherBelief = null) {
     const status = this.voice.tick(belief, otherBelief);
     const snapshot = {
@@ -61,9 +55,6 @@ export class ResonantBridge {
     return this.history.slice(-limit);
   }
 
-  /**
-   * Compact context string suitable for LLM system / tool messages.
-   */
   toPromptFragment() {
     const s = this.voice.getSpectrum();
     return [

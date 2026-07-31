@@ -1,5 +1,5 @@
 /**
- * Jacobian of Belief – provisional derivatives for the living intermediate
+ * Jacobian of Belief – derivatives for the living intermediate
  *
  * State vector (approximate):
  *   x = [amplitude, phase, entropy, unlived, surplus, residual]
@@ -7,8 +7,7 @@
  *   B ∈ [0,1]  (belief)
  *   B' (otherBelief) optional relational term
  *
- * We treat tension T = B(1−B) as the primary nonlinear kernel.
- * All coefficients are provisional readings — Always Believe. Never Know.
+ * Tension T = B(1−B) is the primary nonlinear kernel.
  */
 
 /**
@@ -29,7 +28,6 @@ export function evaluateBeliefJacobian(state, beliefVelocity, otherBelief = null
   const dT_dB = 1 - 2 * B;
 
   // Amplitude channel: gains with tension, responds to belief velocity
-  // ∂A/∂B ≈ (0.9 + 1.6 T) * scale  via velocity path
   const dAmp_dBeliefVelocity = 0.9 + 1.6 * T;
   const dAmp_dT = 1.6 * beliefVelocity;
 
@@ -37,16 +35,16 @@ export function evaluateBeliefJacobian(state, beliefVelocity, otherBelief = null
   const dPhase_dt_base = 2 * Math.PI * carrier * 0.0008;
   const dPhase_dUnlived = 0.0005;
 
-  // Entropy diffusion (extremely small, symbolic of irreversible reading)
+  // Entropy diffusion
   const dEntropy_dUnlived = 1.1e-27;
 
   // Unlived accumulates from |belief velocity|
   const dUnlived_dBeliefVelocity = 0.003 * Math.sign(beliefVelocity || 1e-12);
 
-  // Surplus from creative tension
+  // Surplus from tension
   const dSurplus_dT = 0.0015;
 
-  // Relational coupling: small cosine of belief difference × unlived
+  // Relational coupling: cosine of belief difference × unlived
   let relational = 0;
   let dRelational_dB = 0;
   if (otherBelief != null && !Number.isNaN(otherBelief)) {
@@ -73,7 +71,6 @@ export function evaluateBeliefJacobian(state, beliefVelocity, otherBelief = null
     dRelational_dB,
     residual,
     dResidual_dPhase,
-    // Compact row for observability / LLM injection
     row: {
       dAmp_dB_approx: dAmp_dBeliefVelocity,
       dT_dB,

@@ -1,8 +1,8 @@
 /**
- * Execution Policy – provisional safety bounds for coding agent + terminal
+ * Execution Policy – safety bounds for coding agent + terminal
  *
  * These bounds reduce accidental harm. They are not a security boundary against
- * a determined adversary. Always Believe. Never Know.
+ * a determined adversary.
  *
  * Layers:
  * 1. Path confinement (workspace root)
@@ -125,7 +125,6 @@ export function createExecutionPolicy(options = {}) {
     if (path.isAbsolute(relPath)) {
       deny('absolute paths are not allowed; use workspace-relative paths');
     }
-    // Strip leading ./ and collapse
     const cleaned = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/, '');
     if (cleaned.split(path.sep).includes('..')) {
       deny('path escapes workspace');
@@ -157,7 +156,6 @@ export function createExecutionPolicy(options = {}) {
 
   function firstToken(command) {
     const trimmed = command.trim();
-    // strip simple env prefix VAR=val
     const withoutEnv = trimmed.replace(/^([A-Za-z_][A-Za-z0-9_]*=\S+\s+)*/,'');
     const match = withoutEnv.match(/^([a-zA-Z0-9._+/-]+)/);
     return match ? match[1] : '';
@@ -170,7 +168,6 @@ export function createExecutionPolicy(options = {}) {
     if (command.length > maxCommandChars) {
       deny(`command exceeds maxCommandChars (${maxCommandChars})`);
     }
-    // Null bytes / control chars
     if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(command)) {
       deny('command contains control characters');
     }
@@ -201,7 +198,6 @@ export function createExecutionPolicy(options = {}) {
 
   function beginExecution() {
     const now = Date.now();
-    // prune window
     while (recentTimestamps.length && now - recentTimestamps[0] > rateLimitWindowMs) {
       recentTimestamps.shift();
     }

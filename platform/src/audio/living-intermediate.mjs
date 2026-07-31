@@ -2,14 +2,12 @@
  * LivingIntermediate – Additive Synthesis Engine
  * CONTROL12 Lattice Ops
  *
- * Stable additive synthesis core used by:
+ * Additive synthesis core used by:
  * - platform agents
  * - Avrone Due’Krey chatbot surfaces
  * - local-agent and fabric dashboards
  *
  * Integrates an explicit Jacobian of belief (see jacobian.mjs).
- * Perspective note: every parameter is a provisional reading.
- * Always Believe. Never Know.
  */
 
 import { integrateBeliefStep } from './jacobian.mjs';

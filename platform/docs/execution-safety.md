@@ -1,9 +1,7 @@
 # Code execution safety bounds
 
-Provisional policy for CodingAgent + terminal. These reduce accidental harm;
+Policy for CodingAgent + terminal. These reduce accidental harm;
 they are **not** a guarantee against a determined adversary.
-
-Always Believe. Never Know.
 
 ## Layers
 
@@ -34,5 +32,3 @@ Returns live snapshot (workspace, limits, in-flight count).
 - OS-level sandbox (containers, seccomp) is complementary, not replaced
 - Symlink attacks that resolve *inside* the workspace after open are not fully closed here
 - Network egress from allowed tools (e.g. `npm install`) depends on host firewall
-
-Treat every bound as a frequency that can be tightened further.
