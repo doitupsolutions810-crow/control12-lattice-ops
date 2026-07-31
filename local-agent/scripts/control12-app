@@ -8,6 +8,7 @@ RUN="$ROOT/run"
 MODEL_PORT="${CONTROL12_MODEL_PORT:-11435}"
 APP_PORT="${CONTROL12_PORT:-4312}"
 MODEL_REPO="${CONTROL12_MODEL_REPO:-ggml-org/gemma-3-4b-it-GGUF:Q4_K_M}"
+REPO_ROOT="${CONTROL12_REPO_ROOT:-$HOME/control12-lattice-ops}"
 
 mkdir -p "$APP" "$LOGS" "$RUN"
 
@@ -88,6 +89,17 @@ start_app() {
   }
 }
 
+workspace_doctor() {
+  local doctor="$REPO_ROOT/local-agent/scripts/workspace-doctor.sh"
+
+  if [ ! -f "$doctor" ]; then
+    echo "ERROR: workspace doctor not found at $doctor" >&2
+    return 1
+  fi
+
+  CONTROL12_REPO_ROOT="$REPO_ROOT" bash "$doctor"
+}
+
 stop_port() {
   local pid
   pid="$(port_pid "$1")"
@@ -107,6 +119,9 @@ case "$action" in
     curl -sS -o /dev/null -w 'model HTTP: %{http_code}\n' "http://127.0.0.1:$MODEL_PORT/health" || true
     curl -sS -o /dev/null -w 'application HTTP: %{http_code}\n' "http://127.0.0.1:$APP_PORT/health" || true
     ;;
+  workspace-doctor)
+    workspace_doctor
+    ;;
   doctor)
     echo "Node: $($NODE --version)"
     echo "llama-server: $LLAMA"
@@ -122,7 +137,7 @@ case "$action" in
   *)
     cat <<'USAGE'
 Usage:
-  control12-app start|stop|restart|status|doctor|logs
+  control12-app start|stop|restart|status|doctor|workspace-doctor|logs
   control12-app chat "message"
   control12-app quorum "task"
   control12-app agent <role> "message"
