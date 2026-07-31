@@ -1,4 +1,5 @@
 name: CONTROL12 Sovereign Platform Image
+
 on:
   workflow_dispatch:
   push:
@@ -6,43 +7,86 @@ on:
     paths: ["platform/**", ".github/workflows/control12-platform-image.yml"]
   pull_request:
     paths: ["platform/**", ".github/workflows/control12-platform-image.yml"]
+
 permissions:
   contents: read
   packages: write
   id-token: write
   attestations: write
+  artifact-metadata: write
+
 concurrency:
   group: control12-platform-image-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/control12-sovereign-platform
+
 jobs:
   image:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { persist-credentials: false }
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
       - name: Create Buildx builder
         run: docker buildx create --use --driver docker-container && docker buildx inspect --bootstrap
+
       - name: Authenticate to GHCR
         if: github.event_name != 'pull_request'
-        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
       - name: Build validation image
         if: github.event_name == 'pull_request'
         run: docker buildx build --platform linux/amd64 --load -t control12-sovereign-platform:test platform
+
       - name: Publish multi-architecture image
+        id: publish
         if: github.event_name != 'pull_request'
-        env: { IMAGE: "ghcr.io/${{ github.repository_owner }}/control12-sovereign-platform" }
         run: |
+          set -euo pipefail
           version="$(node -p "require('./platform/package.json').version")"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --tag "$IMAGE:$version" \
             --tag "$IMAGE:sha-${GITHUB_SHA::12}" \
             --tag "$IMAGE:latest" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$version" \
             --attest type=sbom \
             --attest type=provenance,mode=max \
             --push platform
           digest="$(docker buildx imagetools inspect "$IMAGE:$version" | awk '/^Digest:/ {print $2; exit}')"
-          echo "Immutable image: $IMAGE@$digest" >> "$GITHUB_STEP_SUMMARY"
+          test "${digest#sha256:}" != "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "immutable=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Generate registry-attached GitHub provenance attestation
+        if: github.event_name != 'pull_request'
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - name: Independently verify provenance attestation
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMMUTABLE_IMAGE: ${{ steps.publish.outputs.immutable }}
+        run: |
+          set -euo pipefail
+          gh attestation verify "oci://$IMMUTABLE_IMAGE" --repo "$GITHUB_REPOSITORY"
+          {
+            echo "## CONTROL12 platform image verified"
+            echo
+            echo "- Immutable image: \`$IMMUTABLE_IMAGE\`"
+            echo "- Provenance issuer: GitHub Actions OIDC"
+            echo "- Verification: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
