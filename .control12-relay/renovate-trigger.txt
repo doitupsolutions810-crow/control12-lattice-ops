@@ -1,0 +1,1 @@
+CONTROL12 registered self-hosted relay trigger.
