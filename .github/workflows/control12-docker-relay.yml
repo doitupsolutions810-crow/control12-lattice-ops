@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   relay:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       DOCKER_VERSION: 29.7.1
@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload relay artifact
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: control12-docker-floci-amd64
           path: relay/
@@ -92,20 +92,33 @@ jobs:
           compression-level: 1
 
       - name: Report relay artifact
-        uses: actions/github-script@v7
+        shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
           ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                'CONTROL12 relay complete.',
-                `run_id=${context.runId}`,
-                `artifact_id=${process.env.ARTIFACT_ID}`,
-                `artifact_digest=${process.env.ARTIFACT_DIGEST}`
-              ].join('\n')
-            })
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.request
+          body = "\n".join([
+              "CONTROL12 relay complete.",
+              f"run_id={os.environ['GITHUB_RUN_ID']}",
+              f"artifact_id={os.environ['ARTIFACT_ID']}",
+              f"artifact_digest={os.environ['ARTIFACT_DIGEST']}",
+          ])
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(response.status)
+          PY
