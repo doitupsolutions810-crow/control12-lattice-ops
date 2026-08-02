@@ -1,4 +1,4 @@
-name: CONTROL12 Docker Relay
+name: CONTROL12 Docker Relay Probe
 
 on:
   pull_request:
@@ -8,117 +8,15 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
-  relay:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      DOCKER_VERSION: 29.7.1
-      FLOCI_IMAGE: floci/floci:latest
+    timeout-minutes: 5
     steps:
-      - name: Download official Docker static archives
+      - name: Confirm runner allocation
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p relay
-          curl --fail --location --retry 5 --retry-all-errors \
-            "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz" \
-            -o "relay/docker-${DOCKER_VERSION}.tgz"
-          curl --fail --location --retry 5 --retry-all-errors \
-            "https://download.docker.com/linux/static/stable/x86_64/docker-rootless-extras-${DOCKER_VERSION}.tgz" \
-            -o "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz"
-
-      - name: Download Debian 13 rootless prerequisites
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p relay/debian-trixie
-          docker run --rm \
-            -v "$PWD/relay/debian-trixie:/out" \
-            debian:trixie-slim \
-            bash -lc 'set -euo pipefail; apt-get update; apt-get install --download-only -y -o Dir::Cache::archives=/out uidmap slirp4netns fuse-overlayfs; rm -f /out/lock; find /out -maxdepth 1 -type f -name "*.deb" -print'
-
-      - name: Validate Docker archives and binaries
-        shell: bash
-        run: |
-          set -euo pipefail
-          tar -tzf "relay/docker-${DOCKER_VERSION}.tgz" >/dev/null
-          tar -tzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" >/dev/null
-          mkdir -p verify/engine verify/rootless
-          tar -xzf "relay/docker-${DOCKER_VERSION}.tgz" -C verify/engine
-          tar -xzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" -C verify/rootless
-          verify/engine/docker/docker --version | tee relay/docker-version.txt
-          verify/engine/docker/dockerd --version | tee relay/dockerd-version.txt
-          verify/rootless/docker-rootless-extras/rootlesskit --version | tee relay/rootlesskit-version.txt
-          find relay/debian-trixie -type f -name '*.deb' -print0 | sort -z | xargs -0 -r sha256sum > relay/debian-trixie/SHA256SUMS
-          sha256sum relay/*.tgz > relay/SHA256SUMS
-
-      - name: Export exact Floci image
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker pull "${FLOCI_IMAGE}"
-          docker image inspect "${FLOCI_IMAGE}" --format '{{json .RepoDigests}}' | tee relay/floci-repo-digests.json
-          docker image inspect "${FLOCI_IMAGE}" --format '{{.Id}}' | tee relay/floci-image-id.txt
-          docker save "${FLOCI_IMAGE}" -o relay/floci-image.tar
-          sha256sum relay/floci-image.tar >> relay/SHA256SUMS
-
-      - name: Write provenance
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > relay/PROVENANCE.txt <<EOF
-          purpose=CONTROL12 isolated Docker and Floci bootstrap
-          docker_source=https://download.docker.com/linux/static/stable/x86_64/
-          docker_version=${DOCKER_VERSION}
-          debian_dependency_source=debian:trixie-slim apt repositories
-          floci_source=${FLOCI_IMAGE}
-          github_repository=${GITHUB_REPOSITORY}
-          github_sha=${GITHUB_SHA}
-          github_run_id=${GITHUB_RUN_ID}
-          generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          EOF
-
-      - name: Upload relay artifact
-        id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: control12-docker-floci-amd64
-          path: relay/
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 1
-
-      - name: Report relay artifact
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
-          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, os, urllib.request
-          body = "\n".join([
-              "CONTROL12 relay complete.",
-              f"run_id={os.environ['GITHUB_RUN_ID']}",
-              f"artifact_id={os.environ['ARTIFACT_ID']}",
-              f"artifact_digest={os.environ['ARTIFACT_DIGEST']}",
-          ])
-          request = urllib.request.Request(
-              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['PR_NUMBER']}/comments",
-              data=json.dumps({"body": body}).encode(),
-              headers={
-                  "Accept": "application/vnd.github+json",
-                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
-                  "X-GitHub-Api-Version": "2022-11-28",
-                  "Content-Type": "application/json",
-              },
-              method="POST",
-          )
-          with urllib.request.urlopen(request, timeout=30) as response:
-              print(response.status)
-          PY
+          echo "CONTROL12_RELAY_RUNNER_OK"
+          uname -a
