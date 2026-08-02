@@ -1,2 +1,2 @@
 CONTROL12 Docker and Floci relay trigger for the isolated target environment.
-relay_attempt=2
+relay_attempt=3
