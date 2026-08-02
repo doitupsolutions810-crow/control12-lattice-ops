@@ -1,0 +1,111 @@
+name: CONTROL12 Docker Relay
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .control12-relay/trigger.txt
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      DOCKER_VERSION: 29.7.1
+      FLOCI_IMAGE: floci/floci:latest
+    steps:
+      - name: Download official Docker static archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p relay
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz" \
+            -o "relay/docker-${DOCKER_VERSION}.tgz"
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://download.docker.com/linux/static/stable/x86_64/docker-rootless-extras-${DOCKER_VERSION}.tgz" \
+            -o "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz"
+
+      - name: Download Debian 13 rootless prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p relay/debian-trixie
+          docker run --rm \
+            -v "$PWD/relay/debian-trixie:/out" \
+            debian:trixie-slim \
+            bash -lc 'set -euo pipefail; apt-get update; apt-get install --download-only -y -o Dir::Cache::archives=/out uidmap slirp4netns fuse-overlayfs; rm -f /out/lock; find /out -maxdepth 1 -type f -name "*.deb" -print'
+
+      - name: Validate Docker archives and binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -tzf "relay/docker-${DOCKER_VERSION}.tgz" >/dev/null
+          tar -tzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" >/dev/null
+          mkdir -p verify/engine verify/rootless
+          tar -xzf "relay/docker-${DOCKER_VERSION}.tgz" -C verify/engine
+          tar -xzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" -C verify/rootless
+          verify/engine/docker/docker --version | tee relay/docker-version.txt
+          verify/engine/docker/dockerd --version | tee relay/dockerd-version.txt
+          verify/rootless/docker-rootless-extras/rootlesskit --version | tee relay/rootlesskit-version.txt
+          find relay/debian-trixie -type f -name '*.deb' -print0 | sort -z | xargs -0 -r sha256sum > relay/debian-trixie/SHA256SUMS
+          sha256sum relay/*.tgz > relay/SHA256SUMS
+
+      - name: Export exact Floci image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "${FLOCI_IMAGE}"
+          docker image inspect "${FLOCI_IMAGE}" --format '{{json .RepoDigests}}' | tee relay/floci-repo-digests.json
+          docker image inspect "${FLOCI_IMAGE}" --format '{{.Id}}' | tee relay/floci-image-id.txt
+          docker save "${FLOCI_IMAGE}" -o relay/floci-image.tar
+          sha256sum relay/floci-image.tar >> relay/SHA256SUMS
+
+      - name: Write provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > relay/PROVENANCE.txt <<EOF
+          purpose=CONTROL12 isolated Docker and Floci bootstrap
+          docker_source=https://download.docker.com/linux/static/stable/x86_64/
+          docker_version=${DOCKER_VERSION}
+          debian_dependency_source=debian:trixie-slim apt repositories
+          floci_source=${FLOCI_IMAGE}
+          github_repository=${GITHUB_REPOSITORY}
+          github_sha=${GITHUB_SHA}
+          github_run_id=${GITHUB_RUN_ID}
+          generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+
+      - name: Upload relay artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: control12-docker-floci-amd64
+          path: relay/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
+
+      - name: Report relay artifact
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                'CONTROL12 relay complete.',
+                `run_id=${context.runId}`,
+                `artifact_id=${process.env.ARTIFACT_ID}`,
+                `artifact_digest=${process.env.ARTIFACT_DIGEST}`
+              ].join('\n')
+            })
