@@ -1,9 +1,10 @@
 name: Renovate
 
 on:
-  schedule:
-    - cron: "0 * * * *"
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - .control12-relay/renovate-trigger.txt
 
 permissions:
   contents: read
@@ -11,41 +12,72 @@ permissions:
 jobs:
   renovate:
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
+    timeout-minutes: 45
+    env:
+      DOCKER_VERSION: 29.7.1
+      FLOCI_IMAGE: floci/floci:latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
-        with:
-          client-id: ${{ secrets.APP_CLIENT_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Resolve GitHub App bot identity
-        id: app-identity
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+      - name: Prepare relay directory
+        shell: bash
         run: |
           set -euo pipefail
-          user_id="$(gh api "/users/${APP_SLUG}[bot]" --jq '.id')"
-          printf 'author=%s[bot] <%s+%s[bot]@users.noreply.github.com>\n' \
-            "$APP_SLUG" "$user_id" "$APP_SLUG" >> "$GITHUB_OUTPUT"
+          rm -rf relay verify
+          mkdir -p relay verify/engine verify/rootless
 
-      - name: Self-hosted Renovate
-        uses: renovatebot/github-action@973d3e5a68e735a444e8c03432b66eedb343c302 # v46.2.0
+      - name: Download and validate official Docker Linux amd64 archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://download.docker.com/linux/static/stable/x86_64'
+          curl --fail --location --retry 5 --retry-all-errors \
+            "$base/docker-${DOCKER_VERSION}.tgz" \
+            -o "relay/docker-${DOCKER_VERSION}.tgz"
+          curl --fail --location --retry 5 --retry-all-errors \
+            "$base/docker-rootless-extras-${DOCKER_VERSION}.tgz" \
+            -o "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz"
+          tar -tzf "relay/docker-${DOCKER_VERSION}.tgz" >/dev/null
+          tar -tzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" >/dev/null
+          tar -xzf "relay/docker-${DOCKER_VERSION}.tgz" -C verify/engine
+          tar -xzf "relay/docker-rootless-extras-${DOCKER_VERSION}.tgz" -C verify/rootless
+          file verify/engine/docker/dockerd | tee relay/dockerd-file.txt
+          file verify/engine/docker/docker | tee relay/docker-file.txt
+          verify/engine/docker/docker --version | tee relay/docker-version.txt
+          verify/engine/docker/dockerd --version | tee relay/dockerd-version.txt
+          shasum -a 256 relay/docker-*.tgz > relay/SHA256SUMS
+
+      - name: Export exact Floci Linux amd64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v docker
+          docker pull --platform linux/amd64 "${FLOCI_IMAGE}"
+          docker image inspect "${FLOCI_IMAGE}" --format '{{json .RepoDigests}}' | tee relay/floci-repo-digests.json
+          docker image inspect "${FLOCI_IMAGE}" --format '{{.Id}}' | tee relay/floci-image-id.txt
+          docker save "${FLOCI_IMAGE}" -o relay/floci-image.tar
+          shasum -a 256 relay/floci-image.tar >> relay/SHA256SUMS
+
+      - name: Write provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > relay/PROVENANCE.txt <<EOF
+          purpose=CONTROL12 isolated target bootstrap
+          docker_source=https://download.docker.com/linux/static/stable/x86_64/
+          docker_version=${DOCKER_VERSION}
+          floci_source=${FLOCI_IMAGE}
+          floci_platform=linux/amd64
+          github_repository=${GITHUB_REPOSITORY}
+          github_sha=${GITHUB_SHA}
+          github_run_id=${GITHUB_RUN_ID}
+          generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+
+      - name: Upload verified relay artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          configurationFile: renovate.json
-          token: ${{ steps.app-token.outputs.token }}
-        env:
-          RENOVATE_REPOSITORIES: ${{ github.repository }}
-          RENOVATE_GIT_AUTHOR: ${{ steps.app-identity.outputs.author }}
-          RENOVATE_PLATFORM_COMMIT: "enabled"
-          LOG_LEVEL: info
+          name: control12-docker-floci-linux-amd64
+          path: relay/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
