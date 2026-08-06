@@ -1,0 +1,70 @@
+{
+  "audit": {
+    "deterministic_export": "PASS",
+    "independent_reconciliation_review": "PASS"
+  },
+  "authority": {
+    "bounded_delegation": "PASS",
+    "emergency_activation_default": "DENIED",
+    "interinstitution_execution_default": "DENIED",
+    "lease_exhaustion": "PASS",
+    "treaty_activation_default": "DENIED"
+  },
+  "claims_not_made": [
+    "public deployment",
+    "production PostgreSQL pooler connection",
+    "production cluster mutation",
+    "real external treaty activation",
+    "interinstitution mission execution",
+    "production banking or settlement"
+  ],
+  "consequential_gates": {
+    "cluster_commands": false,
+    "continuity_execution": false,
+    "emergency_authority_activation": false,
+    "enterprise_operations": false,
+    "external_execution": false,
+    "federated_settlement": false,
+    "federation_treaty_activation": false,
+    "financial_execution": false,
+    "interinstitution_execution": false
+  },
+  "constitutional_controls": {
+    "amendment_quorum": "PASS",
+    "proposer_self_ratification": "DENIED",
+    "three_authority_policy_activation": "PASS",
+    "voter_activation": "DENIED"
+  },
+  "event_log": {
+    "append_only_postgres_triggers": "APPLIED",
+    "append_only_sqlite_triggers": "PASS",
+    "hash_chain": "PASS",
+    "live_entries": 9,
+    "live_merkle_root": "55b854927a9270edf77b2a3fa17899703d3630dae13c3f881d650ea8075dce27",
+    "merkle_checkpoint": "PASS"
+  },
+  "live_runtime": {
+    "api_and_worker": "PASS",
+    "database_backend": "sqlite",
+    "host": "127.0.0.1",
+    "port": 18098,
+    "profile": "sandbox",
+    "status": "PASS"
+  },
+  "python_compilation": "PASS",
+  "schema": "avrone.test-report/v6",
+  "supabase": {
+    "event_log_triggers": 2,
+    "migration": "sovereign_institutional_network_v6",
+    "runtime_rls_policies": 98,
+    "runtime_tables": 98,
+    "security_advisor_lints": 0,
+    "v6_policies": 12,
+    "v6_tables": 12
+  },
+  "tests": {
+    "failed": 0,
+    "passed": 85
+  },
+  "version": "6.0.0"
+}
