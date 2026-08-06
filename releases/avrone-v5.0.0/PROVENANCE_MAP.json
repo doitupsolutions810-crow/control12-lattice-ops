@@ -1,0 +1,21 @@
+{
+  "schema": "avrone.provenance-map/v1",
+  "version": "5.0.0",
+  "release": "5.0.0",
+  "source": "Avrone Sovereign Fabric v4.0.0",
+  "evolution": "Institutional Intelligence and Economic Fabric",
+  "authority_invariants": [
+    "initiative proposer differs from approver",
+    "journal requester differs from approver and poster",
+    "procurement requester differs from approver and issuer",
+    "causal hypothesis proposer differs from reviewer",
+    "delivery submitter differs from acceptor",
+    "settlement requester differs from approver and executor",
+    "dispute reviewer differs from both parties",
+    "continuity requester differs from approver and executor"
+  ],
+  "external_execution_default": false,
+  "financial_execution_default": false,
+  "federated_settlement_default": false,
+  "continuity_execution_default": false
+}
