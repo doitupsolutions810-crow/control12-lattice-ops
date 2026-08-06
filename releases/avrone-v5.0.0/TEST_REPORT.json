@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "version": "5.0.0",
+  "python_compilation": "PASS",
+  "pytest": {"passed": 77, "failed": 0},
+  "live_http": {
+    "status": "PASS",
+    "port": 18097,
+    "strategy_initiative": "approved",
+    "scenario": "completed",
+    "balanced_journal": "posted",
+    "unbalanced_journal": "denied",
+    "procurement_execution": "denied_by_default_gate",
+    "evidence_assessment": "supported",
+    "causal_hypothesis": "independently_supported",
+    "dispute": "independently_closed",
+    "continuity_execution": "denied_by_default_gate"
+  },
+  "worker": {"status": "PASS", "claimed": 0, "failed": 0},
+  "supabase": {
+    "migration": "institutional_intelligence_economic_v5",
+    "runtime_tables": 86,
+    "runtime_rls_policies": 86,
+    "v5_tables": 15,
+    "v5_policies": 15,
+    "security_advisor_lints": 0
+  },
+  "consequential_gates_default_disabled": true,
+  "external_credentials_embedded": false
+}
