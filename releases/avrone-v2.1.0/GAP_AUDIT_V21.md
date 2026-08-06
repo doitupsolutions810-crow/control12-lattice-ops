@@ -11,6 +11,9 @@
 - missing continuous deployment probes
 - missing worker identity and heartbeat
 - one-reviewer constitutional amendment decision
+- non-attributable or non-atomic constitutional activation
+- circular or stale embedded archive checksums
+- duplicate or stale derived release manifests
 - no governed GitHub improvement-PR request
 - no production PostgreSQL schema matching the runtime service interface
 
