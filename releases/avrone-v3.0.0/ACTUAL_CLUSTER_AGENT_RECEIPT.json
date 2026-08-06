@@ -1,0 +1,23 @@
+{
+  "command_id": "cmd_8fa4e8ccdc8c4742b29ecbcc2c7c924b",
+  "cluster_agent_id": "cla_2e90cfb071c34221812520575601b754",
+  "receipt_id": "crc_f3ec0eda6e4a4049844dd6a6a17cf048",
+  "status": "succeeded",
+  "schema": "avrone.cluster-receipt/v1",
+  "cluster_id": "local-agent-process-2",
+  "completed_at": "2026-08-06T17:42:31.052737+00:00",
+  "detail": {
+    "cluster": "0663cc466cdc",
+    "mutation": false,
+    "target": {
+      "name": "avrone-api",
+      "namespace": "avrone"
+    }
+  },
+  "claim_boundary": {
+    "actual_cluster_agent_process": true,
+    "command_type": "evidence.collect",
+    "kubernetes_mutation": false,
+    "arbitrary_shell_execution": false
+  }
+}
