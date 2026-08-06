@@ -32,7 +32,17 @@ Admission is blocked unless all required checks pass:
 7. A recovery rehearsal for the selected backup passed.
 8. Constitutional deployment review allows the request.
 
-The requester, approver, and final promoter must be three distinct authorities.
+The requester, approver, and final promoter must be three distinct authorities. Legacy promotion routes are denied, and the low-level organization service requires a claimed admission record.
+
+## Promotion evidence
+
+Promotion is claimed atomically. The admission record persists:
+
+- `promoted_by`
+- `promoted_at`
+- `promotion_receipt`
+
+The canonical `avrone.deployment-promotion-receipt/v1` binds the admission, tenant, deployment, requester, approver, promoter, archive digest, evaluation, backup, claim time, completion time, and final outcome. A consumed admission cannot be replayed.
 
 ## Secret-provider boundary
 
