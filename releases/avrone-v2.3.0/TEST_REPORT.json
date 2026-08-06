@@ -1,0 +1,109 @@
+{
+  "canary_rollout": {
+    "actual_cluster_mutation": false,
+    "admitted_oci_required": true,
+    "apply_gate_default_disabled": true,
+    "approved_deployment_admission_required": true,
+    "independent_operator_required": true,
+    "low_level_promotion_bypass_closed": true,
+    "metric_breach_creates_proposal_only": true,
+    "passed_rollout_required_for_promotion": true,
+    "required_metrics": ["availability", "error_rate", "latency_p95_ms"],
+    "steps": [5, 25, 50, 100]
+  },
+  "consequential_gates_default_disabled": true,
+  "external_credentials_embedded": false,
+  "github_workflow": {
+    "actions_sha_pinned": true,
+    "buildkit_provenance": "mode=max",
+    "buildkit_sbom": true,
+    "ghcr_digest_output": true,
+    "github_provenance_attestation": true,
+    "github_sbom_attestation": true,
+    "independent_subject_verifier": true,
+    "keyless_cosign_exact_digest": true,
+    "multiarch": ["linux/amd64", "linux/arm64"],
+    "protected_environment": "production-supply-chain",
+    "publish_default": false
+  },
+  "kubernetes": {
+    "actual_kubernetes_apply": false,
+    "base_default_deny_networking": true,
+    "cluster_api_egress_policy_is_operator_specific_and_not_auto_applied": true,
+    "dedicated_rollout_service_account": true,
+    "digest_only_admission": true,
+    "external_secrets_v1": true,
+    "precreated_canary_objects": true,
+    "restricted_rollout_rbac": true,
+    "sigstore_policy_template": true
+  },
+  "live_http": {
+    "admission_id": "adm_748ac2d7e1c5450d85bae29c5f974c14",
+    "deployment_status": "active",
+    "external_execution": false,
+    "mission_id": "mis_6a67a18ac58e4d50b71480cb23f5ac51",
+    "mutable_reference_denied": true,
+    "oci_artifact_id": "oci_c576ce62552347b588c0b84cc9b3cb7f",
+    "port": 18094,
+    "rollout_apply_denied": true,
+    "rollout_apply_receipt_persisted": false,
+    "rollout_id": "rol_95a136a2990f4927ab14c6d8da3973b2",
+    "rollout_observations": 12,
+    "rollout_status": "passed",
+    "status": "PASS"
+  },
+  "oci_supply_chain": {
+    "actual_ghcr_image_published": false,
+    "immutable_digest_required": true,
+    "independent_admission_receipt": true,
+    "live_cosign_signature_created": false,
+    "live_github_attestation_created": false,
+    "registrant_self_admission_denied": true,
+    "registry_allowlist": true,
+    "repository_prefix_allowlist": true,
+    "slsa_provenance_parsed": true,
+    "spdx_sbom_parsed": true,
+    "verification_receipt_parsed": true
+  },
+  "pytest": {"failed": 0, "passed": 54},
+  "python_compilation": "PASS",
+  "release_integrity": {
+    "deterministic_double_build": "PASS",
+    "embedded_credential_scan": "PASS",
+    "external_archive_checksum": true,
+    "path_traversal": "PASS",
+    "single_authoritative_manifest": true,
+    "zip_crc": "PASS"
+  },
+  "standalone_demo": {
+    "canary_status": "passed",
+    "canary_steps": [5, 25, 50, 100],
+    "deployment": "active",
+    "external_registry_publish": false,
+    "governed_mission": true,
+    "immutable_oci_admission": true,
+    "independent_oci_approval": true,
+    "kubernetes_apply": false,
+    "recovery_rehearsal": "passed",
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "supabase": {
+    "application_live_postgresql_connection": false,
+    "deployment_admission_columns": 2,
+    "migration": "supply_chain_and_canary_v23",
+    "new_deny_client_policies": 4,
+    "new_tables": 4,
+    "project_ref": "cgpztofnwwopzakygojw",
+    "security_advisor_lints": 0,
+    "status": "PASS"
+  },
+  "version": "2.3.0",
+  "worker": {
+    "claimed": 0,
+    "external_execution_enabled": false,
+    "failed": 0,
+    "status": "PASS",
+    "worker_id": "wrk_0663cc466cdc_25485_7228e7cb"
+  }
+}
