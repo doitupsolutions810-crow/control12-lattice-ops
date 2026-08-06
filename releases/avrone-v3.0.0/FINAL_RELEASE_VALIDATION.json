@@ -1,0 +1,12 @@
+{
+  "archive_members": 154,
+  "archive_sha256": "828896f2885684cc5fb51e599abde8b8ba40c3dcd1d69407de5c38b1687fc6d2",
+  "credential_hits": [],
+  "deterministic_double_build": true,
+  "manifest_file_count": 153,
+  "source_tree_sha256": "3467641771ad5f275d6bba3769d75bbcb56e40da2fc4f3b63e4369b952a2f9d5",
+  "zip_crc": null,
+  "path_traversal_check": "PASS",
+  "single_authoritative_manifest": true,
+  "checksum_embedded_in_archive": false
+}
