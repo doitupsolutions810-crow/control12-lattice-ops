@@ -1,0 +1,13 @@
+{
+  "archive": "avrone-sovereign-fabric-v4.0.0.zip",
+  "archive_members": 166,
+  "authoritative_manifest_count": 1,
+  "deterministic_double_build": true,
+  "manifest_file_count": 165,
+  "secret_findings": [],
+  "secret_scan": "PASS",
+  "sha256": "eb2e786d464805ef284a55dbc1e46166b9ca767aa39c922cfb0a103e0aba92cf",
+  "source_tree_sha256": "a0907064e1876bda2c33624858b14fa85ee400e4fda5740c51d714bacede8d46",
+  "traversal": "PASS",
+  "zip_crc": "PASS"
+}
