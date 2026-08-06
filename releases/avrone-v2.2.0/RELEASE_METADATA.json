@@ -1,0 +1,10 @@
+{
+  "version": "2.2.0",
+  "archive": "avrone-sovereign-fabric-v2.2.0.zip",
+  "archive_sha256": "5d7e78b72bb726eea51d10903f36ad3d596d4648467b84093aafc830afa704cd",
+  "archive_members": 115,
+  "manifest_file_count": 114,
+  "source_tree_sha256": "8fdf5ae7b7e907a3c845ac8db54fa922ab097d31efd7050a953b817164525259",
+  "deterministic_double_build": true,
+  "checksum_embedded_in_archive": false
+}
