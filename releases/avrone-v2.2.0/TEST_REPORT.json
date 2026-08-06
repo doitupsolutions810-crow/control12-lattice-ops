@@ -1,69 +1,92 @@
 {
-  "status": "PASS",
-  "version": "2.2.0",
-  "python_compilation": "PASS",
-  "pytest": {"passed": 47, "failed": 0},
-  "standalone_demo": {
-    "status": "PASS",
-    "governed_mission": true,
-    "evaluation": "passed",
-    "backup_created": true,
-    "isolated_recovery_rehearsal": "passed",
-    "deployment_admission": "promoted",
-    "deployment": "active",
-    "external_execution": false
-  },
-  "live_http": {
-    "status": "PASS",
-    "port": 18091,
-    "mission_id": "mis_7e88edc9d5224deda5c6d2a171b9f09c",
-    "deployment_id": "dep_a870893a71934f669a06177e97a4993d",
-    "backup_id": "bkp_1cd254bc3bb842568a968335b2ab6cfe",
-    "rehearsal_id": "rec_e1aeed0e7541440ebb9b946d016723dd",
-    "admission_id": "adm_4487921f23534957a6af631e7fadd34f",
-    "legacy_promotion_denied": true,
-    "requester_self_approval_denied": true,
-    "approver_final_promotion_denied": true,
-    "independent_final_promotion": "PASS",
-    "secret_values_exposed": false,
-    "external_execution": false
-  },
-  "resilience": {
-    "secret_providers": ["env", "file", "vault"],
-    "backup_manifest_verification": "PASS",
-    "archive_digest_verification": "PASS",
-    "safe_extraction": "PASS",
-    "sqlite_integrity_rehearsal": "PASS",
-    "postgres_rehearsal_contract": "PASS",
-    "expired_job_recovery": "PASS",
-    "expired_outbox_recovery": "PASS",
-    "stale_worker_evidence": "PASS"
-  },
+  "consequential_gates_default_disabled": true,
   "deployment_admission": {
-    "safe_archive_required": true,
+    "canonical_promotion_receipt": true,
     "exact_digest_required": true,
-    "passed_evaluation_required": true,
-    "rollback_plan_required": true,
-    "passed_recovery_rehearsal_required": true,
     "independent_requester_approver_promoter": true,
-    "low_level_promotion_bypass_closed": true
-  },
-  "supabase": {
-    "status": "PASS",
-    "project_ref": "cgpztofnwwopzakygojw",
-    "migration": "resilience_and_admission_v22",
-    "runtime_tables": 41,
-    "runtime_rls_policies": 41,
-    "resilience_tables": 4,
-    "security_advisor_lints": 0
-  },
-  "kubernetes": {
-    "digest_pinned_examples": true,
-    "digest_admission_policy": true,
-    "secret_file_mounts": true,
-    "backup_cronjob": true,
-    "default_deny_networking": true
+    "legacy_route_bypass_closed": true,
+    "low_level_promotion_bypass_closed": true,
+    "passed_evaluation_required": true,
+    "passed_recovery_rehearsal_required": true,
+    "promoter_identity_persisted": true,
+    "promotion_timestamp_persisted": true,
+    "rollback_plan_required": true,
+    "safe_archive_required": true
   },
   "external_credentials_embedded": false,
-  "consequential_gates_default_disabled": true
+  "kubernetes": {
+    "backup_cronjob": true,
+    "default_deny_networking": true,
+    "digest_admission_policy": true,
+    "digest_pinned_examples": true,
+    "secret_file_mounts": true
+  },
+  "live_http": {
+    "admission_id": "adm_2d13f66390ab4c9fb42b3ffccf5fdc2f",
+    "approver_final_promotion_denied": true,
+    "backup_id": "bkp_d743b127c5384ba7822c3cab755a102c",
+    "deployment_id": "dep_b667462d57ca4e3f864bc2d5b3fe8d03",
+    "external_execution": false,
+    "independent_final_promotion": "PASS",
+    "legacy_promotion_denied": true,
+    "mission_id": "mis_df7734042e5749bb8405f072e1eecb52",
+    "port": 18093,
+    "promoted_by": "release-promoter",
+    "promotion_receipt_schema": "avrone.deployment-promotion-receipt/v1",
+    "rehearsal_id": "rec_5d654d11c3ce4f759ace36d35c0b47dd",
+    "requester_self_approval_denied": true,
+    "secret_values_exposed": false,
+    "status": "PASS",
+    "worker_heartbeat": "ready"
+  },
+  "pytest": {
+    "failed": 0,
+    "passed": 47
+  },
+  "python_compilation": "PASS",
+  "release_integrity": {
+    "deterministic_double_build": "PASS",
+    "external_archive_checksum": true,
+    "single_authoritative_manifest": true
+  },
+  "resilience": {
+    "archive_digest_verification": "PASS",
+    "backup_manifest_verification": "PASS",
+    "expired_job_recovery": "PASS",
+    "expired_outbox_recovery": "PASS",
+    "postgres_rehearsal_contract": "PASS",
+    "safe_extraction": "PASS",
+    "secret_providers": [
+      "env",
+      "file",
+      "vault"
+    ],
+    "sqlite_integrity_rehearsal": "PASS",
+    "stale_worker_evidence": "PASS"
+  },
+  "standalone_demo": {
+    "backup_created": true,
+    "deployment": "active",
+    "deployment_admission": "promoted",
+    "evaluation": "passed",
+    "external_execution": false,
+    "governed_mission": true,
+    "isolated_recovery_rehearsal": "passed",
+    "promotion_receipt": "avrone.deployment-promotion-receipt/v1",
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "supabase": {
+    "migrations": [
+      "resilience_and_admission_v22",
+      "promotion_evidence_v22"
+    ],
+    "project_ref": "cgpztofnwwopzakygojw",
+    "promotion_evidence_columns": 3,
+    "runtime_rls_policies": 41,
+    "runtime_tables": 41,
+    "security_advisor_lints": 0,
+    "status": "PASS"
+  },
+  "version": "2.2.0"
 }
