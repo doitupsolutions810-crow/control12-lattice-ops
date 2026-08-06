@@ -9,11 +9,15 @@
 - no non-destructive restore rehearsal
 - no recovery rehearsal prerequisite for deployment admission
 - deployment admission without independent requester, approver, and promoter roles
+- promoter authority enforced but not persisted as durable evidence
 - expired job/outbox leases recovered only during claims and not evidenced
 - stale worker nodes remaining apparently healthy
 - Kubernetes tag-based image examples
 - no scheduled backup workload
+- legacy HTTP promotion bypass
+- low-level service promotion bypass
 - recursive or self-embedded release checksum patterns
+- stale derived external metadata included in release archives
 
 ## Deliberately external
 
@@ -34,6 +38,7 @@
 - restoring over an active database during rehearsal
 - requester self-approval
 - approver performing final promotion
+- promotion without a canonical requester/approver/promoter receipt
 - autonomous merge or production promotion
 - autonomous constitutional activation
 - unbounded agent or tool authority
