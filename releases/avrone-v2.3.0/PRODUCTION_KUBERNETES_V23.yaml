@@ -1,0 +1,238 @@
+# Review bundle only. Apply resources from the validated release archive after replacing
+# all placeholder digests, Vault endpoints, roles, and cluster-specific networking.
+
+# External Secrets Operator v1 resources.
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: avrone-vault
+  namespace: avrone
+spec:
+  provider:
+    vault:
+      server: https://vault.example.invalid
+      path: kv
+      version: v2
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: avrone-runtime
+          serviceAccountRef:
+            name: avrone-secret-reader
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: avrone-secret-reader
+  namespace: avrone
+  annotations:
+    avrone.io/purpose: external-secret-authentication-only
+automountServiceAccountToken: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: avrone-runtime
+  namespace: avrone
+spec:
+  refreshPolicy: Periodic
+  refreshInterval: 1h
+  secretStoreRef:
+    name: avrone-vault
+    kind: SecretStore
+  target:
+    name: avrone-secrets
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: Opaque
+  data:
+    - secretKey: AVRONE_API_KEY
+      remoteRef: {key: avrone/runtime, property: api_key}
+    - secretKey: AVRONE_SIGNING_KEY
+      remoteRef: {key: avrone/runtime, property: signing_key}
+    - secretKey: AVRONE_DATABASE_URL
+      remoteRef: {key: avrone/runtime, property: database_url}
+    - secretKey: OPENAI_API_KEY
+      remoteRef: {key: avrone/connectors, property: openai_api_key}
+    - secretKey: WOLFRAM_APP_ID
+      remoteRef: {key: avrone/connectors, property: wolfram_app_id}
+    - secretKey: SUPABASE_SERVICE_ROLE_KEY
+      remoteRef: {key: avrone/connectors, property: supabase_service_role_key}
+    - secretKey: GITHUB_TOKEN
+      remoteRef: {key: avrone/connectors, property: github_token}
+---
+# Sigstore Policy Controller installation-time template.
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: avrone-trusted-github-build
+spec:
+  images:
+    - glob: ghcr.io/doitupsolutions810-crow/avrone-sovereign-fabric@sha256:*
+  authorities:
+    - keyless:
+        url: https://fulcio.sigstore.dev
+        identities:
+          - issuer: https://token.actions.githubusercontent.com
+            subjectRegExp: ^https://github.com/doitupsolutions810-crow/control12-lattice-ops/.github/workflows/oci-release.yml@refs/(heads/main|tags/v2\.3\.[0-9]+)$
+      ctlog:
+        url: https://rekor.sigstore.dev
+      attestations:
+        - name: slsa-provenance
+          predicateType: https://slsa.dev/provenance/v1
+          policy:
+            type: cue
+            data: |
+              predicateType: "https://slsa.dev/provenance/v1"
+        - name: spdx-sbom
+          predicateType: https://spdx.dev/Document/v2.3
+          policy:
+            type: cue
+            data: |
+              predicateType: "https://spdx.dev/Document/v2.3"
+---
+# Pre-created canary object. Placeholder digest must be replaced by an admitted digest.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: avrone-canary
+  namespace: avrone
+  labels: {app: avrone, track: canary}
+spec:
+  replicas: 0
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {app: avrone, track: canary}
+  template:
+    metadata:
+      labels: {app: avrone, track: canary}
+    spec:
+      serviceAccountName: avrone
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: avrone
+          image: ghcr.io/doitupsolutions810-crow/avrone-sovereign-fabric@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          args: ["python", "-m", "avrone.cli", "serve"]
+          envFrom:
+            - configMapRef: {name: avrone-config}
+            - secretRef: {name: avrone-secrets}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          ports: [{name: http, containerPort: 18080}]
+          readinessProbe: {httpGet: {path: /ready, port: http}}
+          livenessProbe: {httpGet: {path: /health, port: http}}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: avrone-data}
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: avrone-canary
+  namespace: avrone
+spec:
+  selector: {app: avrone, track: canary}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+# Narrow rollout-controller identity.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: avrone-rollout-controller
+  namespace: avrone
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: avrone-rollout-controller
+  namespace: avrone
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["avrone-canary"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["avrone-canary"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/status"]
+    resourceNames: ["avrone-canary"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: avrone-rollout-controller
+  namespace: avrone
+subjects:
+  - kind: ServiceAccount
+    name: avrone-rollout-controller
+    namespace: avrone
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: avrone-rollout-controller
+---
+# Operator-created suspended Job template. A cluster-specific Kubernetes API egress policy
+# is required and is intentionally not guessed or auto-installed.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: avrone-rollout-apply-template
+  namespace: avrone
+  annotations:
+    avrone.io/template: "true"
+spec:
+  suspend: true
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: avrone, component: rollout-controller}
+    spec:
+      serviceAccountName: avrone-rollout-controller
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: ghcr.io/doitupsolutions810-crow/avrone-rollout-controller@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          args: ["python", "-m", "avrone.cli", "rollout-apply", "--rollout-id", "ROLLOUT_ID", "--actor", "ACTOR"]
+          envFrom:
+            - configMapRef: {name: avrone-config}
+            - secretRef: {name: avrone-secrets}
+          env:
+            - {name: ALLOW_ROLLOUT_APPLY, value: "true"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: avrone-data}
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
