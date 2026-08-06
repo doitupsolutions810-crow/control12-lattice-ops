@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "version": "2.1.0",
+  "python_compilation": "PASS",
+  "pytest": {
+    "passed": 41,
+    "failed": 0
+  },
+  "live_operational_smoke": {
+    "status": "PASS",
+    "port": 18088,
+    "database_backend": "sqlite-local-validation",
+    "mission_id": "mis_36156feb0edc40cd8cfbd38598ed4b45",
+    "deliberation": "recommend_approval",
+    "evaluation": "passed",
+    "deployment_id": "dep_20bc0e98d2da4960870f1ad9fa957264",
+    "deployment_status": "active",
+    "separate_worker_process": true,
+    "worker_jobs_completed": 3,
+    "institutional_reviews_completed": 1,
+    "slo_healthy": true,
+    "slo_observations": 4,
+    "external_execution": false
+  },
+  "constitutional_board": {
+    "status": "PASS",
+    "amendment_id": "cam_870b192307c44972b73f888da52e1965",
+    "approval_quorum": 2,
+    "independent_activator_required": true,
+    "activated_constitution_version": 2
+  },
+  "supabase": {
+    "status": "PASS",
+    "project_ref": "cgpztofnwwopzakygojw",
+    "migration": "persistent_operational_institution_v21",
+    "runtime_tables": 37,
+    "deny_client_policies": 37,
+    "security_advisor_lints": 0
+  },
+  "openai": {
+    "connector_contract": "PASS",
+    "responses_api": true,
+    "strict_json_schema": true,
+    "bounded_output": true,
+    "store": false,
+    "live_key_used": false,
+    "status": "fail_closed_pending_replacement_secret"
+  },
+  "wolfram": {
+    "connector_contract": "PASS",
+    "live_app_id_used": false,
+    "status": "fail_closed_pending_app_id"
+  },
+  "external_credentials_embedded": false,
+  "consequential_gates_default_disabled": true
+}
