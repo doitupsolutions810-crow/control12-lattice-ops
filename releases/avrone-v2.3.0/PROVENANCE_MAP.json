@@ -1,0 +1,27 @@
+{
+  "base": {
+    "artifact": "avrone-sovereign-fabric-v2.2.0.zip",
+    "classification": "exact-input-bytes",
+    "sha256": "7c639e687bf09410e1edc74740040e51c42ea5bbfbe9b9644d50e2a229e17243"
+  },
+  "claim_boundary": "The v2.3 code and local evidence are real and validated. The live OCI evidence used by the local smoke test is synthetic but structurally valid and is not represented as a published registry artifact. No GHCR image, GitHub attestation, Fulcio/Rekor record, Kubernetes mutation, production traffic shift, provider credential, or live PostgreSQL application connection is fabricated or claimed.",
+  "evolution": {
+    "classification": "regenerated-integration-code",
+    "modified_modules": ["admission", "api", "cli", "organization", "settings", "store", "workers"],
+    "new_modules": ["supply_chain", "rollout"],
+    "new_resources": [
+      "Supabase migration 0008",
+      "multi-architecture GHCR workflow",
+      "GitHub and Sigstore attestation verification",
+      "External Secrets v1 resources",
+      "Sigstore ClusterImagePolicy template",
+      "restricted rollout controller RBAC",
+      "digest-pinned canary placeholder",
+      "v2.3 production supply-chain documentation",
+      "v2.3 regression and live-smoke tests"
+    ]
+  },
+  "release": "2.3.0",
+  "schema": "avrone.provenance-map/v3",
+  "version": "2.3.0"
+}
