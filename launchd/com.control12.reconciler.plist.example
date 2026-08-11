@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.control12.reconciler</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__CONTROL12_REPO__/scripts/control12-reconciler.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>60</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.control12/reconciler/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.control12/reconciler/launchd.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CONTROL12_REPO_DIR</key>
+    <string>__CONTROL12_REPO__</string>
+    <key>CONTROL12_RECONCILE_BRANCH</key>
+    <string>feature/chat-workspace-fabric-v5</string>
+  </dict>
+</dict>
+</plist>

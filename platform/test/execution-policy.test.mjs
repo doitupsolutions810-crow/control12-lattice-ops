@@ -15,6 +15,12 @@ describe('execution policy path bounds', () => {
 
   it('rejects .. escape', () => {
     assert.throws(() => policy.resolveSafe('../outside'), /escapes workspace/);
+    assert.throws(() => policy.resolveSafe('src/../../outside'), /escapes workspace/);
+    assert.throws(() => policy.resolveSafe('src\\..\\..\\outside'), /escapes workspace/);
+  });
+
+  it('rejects null bytes', () => {
+    assert.throws(() => policy.resolveSafe('src/app.js\0.txt'), /null byte/);
   });
 
   it('rejects absolute paths', () => {

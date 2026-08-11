@@ -1,0 +1,34 @@
+{{- if .Values.analysis.enabled }}
+{{- $prom := required "analysis.prometheusAddress must be set when analysis.enabled=true" .Values.analysis.prometheusAddress -}}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "control12.fullname" . }}-slo
+spec:
+  metrics:
+    - name: canary-success-rate
+      interval: {{ .Values.analysis.interval }}
+      count: {{ .Values.analysis.count }}
+      failureLimit: {{ .Values.analysis.failureLimit }}
+      successCondition: result[0] >= {{ .Values.analysis.minSuccessRate }}
+      provider:
+        prometheus:
+          address: {{ $prom | quote }}
+          query: |
+            sum(rate(istio_requests_total{destination_service_name="{{ include "control12.fullname" . }}-canary",response_code!~"5.."}[2m]))
+            /
+            clamp_min(sum(rate(istio_requests_total{destination_service_name="{{ include "control12.fullname" . }}-canary"}[2m])), 0.001)
+    - name: canary-p95-latency-seconds
+      interval: {{ .Values.analysis.interval }}
+      count: {{ .Values.analysis.count }}
+      failureLimit: {{ .Values.analysis.failureLimit }}
+      successCondition: result[0] <= {{ .Values.analysis.maxP95LatencySeconds }}
+      provider:
+        prometheus:
+          address: {{ $prom | quote }}
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(istio_request_duration_milliseconds_bucket{destination_service_name="{{ include "control12.fullname" . }}-canary"}[2m])) by (le)
+            ) / 1000
+{{- end }}

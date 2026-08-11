@@ -1,0 +1,60 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/doitupsolutions810-crow/control12
+  digest: ""
+  pullPolicy: IfNotPresent
+
+region: ""
+
+service:
+  port: 80
+  targetPort: 8080
+
+rollout:
+  maxSurge: "25%"
+  maxUnavailable: 0
+  rollbackWindowRevisions: 3
+  steps:
+    - setWeight: 5
+    - pause: { duration: 5m }
+    - analysis: true
+    - setWeight: 25
+    - pause: { duration: 5m }
+    - analysis: true
+    - setWeight: 50
+    - pause: { duration: 10m }
+    - analysis: true
+    - setWeight: 100
+
+istio:
+  enabled: true
+  gateway: control12-gateway
+  host: control12.example.invalid
+
+analysis:
+  enabled: false
+  prometheusAddress: ""
+  interval: 1m
+  count: 5
+  failureLimit: 2
+  maxP95LatencySeconds: 2
+  minSuccessRate: 0.99
+
+podAnnotations:
+  sidecar.istio.io/inject: "true"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]

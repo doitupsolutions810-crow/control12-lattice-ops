@@ -1,0 +1,89 @@
+{{- $digest := required "image.digest must be set to an immutable sha256 digest" .Values.image.digest -}}
+{{- if not (regexMatch "^sha256:[a-f0-9]{64}$" $digest) -}}
+{{- fail "image.digest must match sha256 followed by exactly 64 lowercase hexadecimal characters" -}}
+{{- end -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "control12.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 5
+  rollbackWindow:
+    revisions: {{ .Values.rollout.rollbackWindowRevisions }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "control12.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "control12.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        control12.io/region: {{ required "region must be set" .Values.region | quote }}
+      annotations:
+{{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: control12
+          image: "{{ .Values.image.repository }}@{{ $digest }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          securityContext:
+{{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+{{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+  strategy:
+    canary:
+      stableService: {{ include "control12.fullname" . }}-stable
+      canaryService: {{ include "control12.fullname" . }}-canary
+      maxSurge: {{ .Values.rollout.maxSurge | quote }}
+      maxUnavailable: {{ .Values.rollout.maxUnavailable }}
+{{- if .Values.istio.enabled }}
+      trafficRouting:
+        istio:
+          virtualService:
+            name: {{ include "control12.fullname" . }}
+            routes:
+              - primary
+{{- end }}
+      steps:
+        - setWeight: 5
+        - pause: { duration: 5m }
+{{- if .Values.analysis.enabled }}
+        - analysis:
+            templates:
+              - templateName: {{ include "control12.fullname" . }}-slo
+{{- end }}
+        - setWeight: 25
+        - pause: { duration: 5m }
+{{- if .Values.analysis.enabled }}
+        - analysis:
+            templates:
+              - templateName: {{ include "control12.fullname" . }}-slo
+{{- end }}
+        - setWeight: 50
+        - pause: { duration: 10m }
+{{- if .Values.analysis.enabled }}
+        - analysis:
+            templates:
+              - templateName: {{ include "control12.fullname" . }}-slo
+{{- end }}
+        - setWeight: 100
