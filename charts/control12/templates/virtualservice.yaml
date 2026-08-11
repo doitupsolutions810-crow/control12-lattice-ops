@@ -1,0 +1,20 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "control12.fullname" . }}
+spec:
+  gateways:
+    - {{ .Values.istio.gateway | quote }}
+  hosts:
+    - {{ .Values.istio.host | quote }}
+  http:
+    - name: primary
+      route:
+        - destination:
+            host: {{ include "control12.fullname" . }}-stable
+          weight: 100
+        - destination:
+            host: {{ include "control12.fullname" . }}-canary
+          weight: 0
+{{- end }}
