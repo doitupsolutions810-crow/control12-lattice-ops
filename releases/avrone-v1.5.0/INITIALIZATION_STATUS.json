@@ -1,0 +1,47 @@
+{
+  "attestation_verified": true,
+  "connectors": {
+    "github": "configured",
+    "openai": "replacement_secret_required",
+    "supabase": "initialized",
+    "wolfram": "app_id_required"
+  },
+  "deployment_id": "dep_62fb26ef946f42d2af27829f9dde2e8c",
+  "deployment_status": "active",
+  "execution_gates": {
+    "agents": false,
+    "external": false,
+    "rollouts": false,
+    "training": false
+  },
+  "health_verified": true,
+  "initialization_report_sha256": "7037daa28a23dc50ab0989dcd9859f36b7f1376b2fe3a2c6ffd5a88cf6a94ce6",
+  "kernel": {
+    "approval_id": "apr_a363553769b64979b29ed80ecab2ef71",
+    "envelope_id": "env_init_90f9e704b7814a719fa40941d0259eb0",
+    "evidence_chain": {
+      "entries": 2,
+      "head": "99ecb467646a93848f39b320c16e34a045d5506271e6658a52dd42b3b0633d96",
+      "valid": true
+    },
+    "object_version": 1
+  },
+  "mission_id": "mis_5d22ebfed255449894feb0ae0ace2165",
+  "mission_status": "completed",
+  "release_archive_sha256": "61addc4dbca7fad7171462de616c2ae4e7903a7229169baa20474bc7ac854d65",
+  "schema": "avrone.initialization-status/1",
+  "status": "initialized",
+  "supabase": {
+    "event_hash": "08903a44484221e4136c941dba6364baa21b32deed72c6c9cfa3b02d3845a493",
+    "kernel_event_hash": "99ecb467646a93848f39b320c16e34a045d5506271e6658a52dd42b3b0633d96",
+    "project_ref": "cgpztofnwwopzakygojw",
+    "security_advisor_lints": 0,
+    "tenant": "avrone-system",
+    "workflow": "initialize-avrone-v1.5.0"
+  },
+  "tests": {
+    "failed": 0,
+    "passed": 26
+  },
+  "version": "1.5.0"
+}

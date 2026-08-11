@@ -1,0 +1,48 @@
+{
+  "version": "1.5.0",
+  "status": "PASS",
+  "python_compilation": "PASS",
+  "pytest": {"passed": 26, "failed": 0},
+  "live_http": {
+    "status": "PASS",
+    "port": 18085,
+    "endpoints": [
+      "/health",
+      "/ready",
+      "/v1/architecture",
+      "/v1/operations/readiness",
+      "/v1/operations/missions",
+      "/v1/missions/{id}/decision",
+      "/v1/missions/{id}/execute",
+      "/v1/missions/{id}/stage",
+      "/v1/deployments/{id}/promote",
+      "/v1/envelopes",
+      "/v1/envelopes/{id}/decision",
+      "/v1/evidence/{tenant}/verify"
+    ],
+    "governed_path": "PASS",
+    "attestation_verified": true,
+    "deployment_health": "healthy",
+    "final_mission_status": "completed",
+    "kernel_initialization": {
+      "status": "applied",
+      "object_version": 1,
+      "evidence_chain_valid": true,
+      "evidence_entries": 2
+    }
+  },
+  "connectors": {
+    "github": "configured",
+    "supabase": "initialized",
+    "openai": "fail_closed_until_replacement_secret",
+    "wolfram": "fail_closed_until_app_id"
+  },
+  "supabase": {
+    "project_ref": "cgpztofnwwopzakygojw",
+    "security_advisor_lints": 0,
+    "deny_client_policy_count": 9,
+    "initialization_events": 2
+  },
+  "external_credentials_embedded": false,
+  "external_execution_enabled": false
+}

@@ -1,0 +1,350 @@
+{
+  "file_count": 57,
+  "files": [
+    {
+      "path": ".env.example",
+      "provenance": "inherited-or-updated",
+      "sha256": "c2ae8aa8d1b9ece735624be1b792f33ce0d72e1cac166f56ad6579e6ec85e2ea",
+      "size_bytes": 913
+    },
+    {
+      "path": "Dockerfile",
+      "provenance": "inherited-or-updated",
+      "sha256": "a7ca665f7178284093a0473e3ce2f5b6a68ca7e0ff2015856d7c5327c33419af",
+      "size_bytes": 335
+    },
+    {
+      "path": "GAP_AUDIT.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "7a05193d06533ac4e7e11b477554d0b9105f5dad6178f579b6454965bf9bcf04",
+      "size_bytes": 1188
+    },
+    {
+      "path": "GAP_AUDIT_V1.4.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "ad4951c4fd882651c188667e84dc542f87e69b1ffbaa616aa878368180c6b532",
+      "size_bytes": 941
+    },
+    {
+      "path": "PROVENANCE_MAP.json",
+      "provenance": "inherited-or-updated",
+      "sha256": "7a7e62e883988ded8c971de2482b5a3f6527181d33200fa7305ddac28571bc51",
+      "size_bytes": 584
+    },
+    {
+      "path": "README.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "d17c778630fe80a9b72bbd7a362c72388186933b9822146537e015ce21f47c4f",
+      "size_bytes": 1549
+    },
+    {
+      "path": "SECURITY.md",
+      "provenance": "regenerated",
+      "sha256": "831f2f59b0f89a7dbf3c0502377359d2c99bb24d03dc0128bb3b733ed9400d46",
+      "size_bytes": 808
+    },
+    {
+      "path": "TEST_REPORT.json",
+      "provenance": "inherited-or-updated",
+      "sha256": "2d6bf3404181f875f8344bd1744ed463653de29209cdec3511f43e5c474cd3af",
+      "size_bytes": 1021
+    },
+    {
+      "path": "avrone/__init__.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "234dae2ff2887f2c6521e3635daed42420645571e498cbcceef7ecba70a98920",
+      "size_bytes": 20
+    },
+    {
+      "path": "avrone/adapters.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "ea55917eec0b9d0a2827fe7ae0940bf00bb7bd0521b38b5507e30aade992b246",
+      "size_bytes": 759
+    },
+    {
+      "path": "avrone/agents.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "a8ded37b5922a983acb4013381fbebb0246ea33cc960728ee5410bfa962c30bc",
+      "size_bytes": 1614
+    },
+    {
+      "path": "avrone/api.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "978f0e103c204509c806de3c117074121577ba762c7b61b467eae564977bad38",
+      "size_bytes": 14344
+    },
+    {
+      "path": "avrone/artifacts.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "22ecdf8c68a2ff0be7abf0b4f1b79d53ede6cc6acfff62d980f2c4650562f2fc",
+      "size_bytes": 1357
+    },
+    {
+      "path": "avrone/backup.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "7ac1a93d4d2799a79c9701c3bb4ec8caad35c2df823d24ebc3428a98ae402941",
+      "size_bytes": 1443
+    },
+    {
+      "path": "avrone/bus.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "45025ac77f58b6ac401427153508a38adc2e88f7fa300c15d50258fde58e1c67",
+      "size_bytes": 1674
+    },
+    {
+      "path": "avrone/cache.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "7b074dd6dc6b3ca7101378d8346b42edbf64a0b24a0f950f1b29b2d8594ad068",
+      "size_bytes": 1555
+    },
+    {
+      "path": "avrone/cli.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "64a604d9eeff9a156c84ccf696fe6df25e332d00ab58b8d3d984168b0c005207",
+      "size_bytes": 1520
+    },
+    {
+      "path": "avrone/connectors.py",
+      "provenance": "regenerated",
+      "sha256": "1d48eb097cadd4ec3a9e19930a5ce64ba6d12de5492dbe42bab135569ccf0926",
+      "size_bytes": 9740
+    },
+    {
+      "path": "avrone/constitution.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "8606b0701a07e70cfd6c39a5e1b7086c3f601c2835704d7ac92115b3b78042c0",
+      "size_bytes": 3096
+    },
+    {
+      "path": "avrone/crypto.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "2d8dd64d774035842518a5cfea4988b5f4cfb006346201a026cc1047feb11927",
+      "size_bytes": 508
+    },
+    {
+      "path": "avrone/domains.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "0ece19fbb4d98251a342be044ca987f1901797b6c92143e09ab28a5830fdac8c",
+      "size_bytes": 1233
+    },
+    {
+      "path": "avrone/integrations.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "a4bf93f4906d20e6fe809507457a234baf71fda820daa3c20f34275afa9364b9",
+      "size_bytes": 1345
+    },
+    {
+      "path": "avrone/kernel.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "d7d8c6b0beefcf4bcc42f4e041d615ccb1d314da18aa9c9840afc773720f77dd",
+      "size_bytes": 2901
+    },
+    {
+      "path": "avrone/metrics.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "f3f87ec9f14c8a137383ba869854aeb1446fc288b4cad0585bd9ebfdac2cea49",
+      "size_bytes": 745
+    },
+    {
+      "path": "avrone/models.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "a53631e4d541915851cd67606213fa00b9d5b8d44f0c95da3ab8690088478a10",
+      "size_bytes": 1896
+    },
+    {
+      "path": "avrone/object_store.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "958a833733efc98a3f640d9c88cc376b51b80e0b7b37803ab91a5299ccb71a28",
+      "size_bytes": 1073
+    },
+    {
+      "path": "avrone/operations_plane.py",
+      "provenance": "regenerated",
+      "sha256": "d4f4baecca69b7570d7c10c25b2135df26c3d239606c01403d8f90266a3ba309",
+      "size_bytes": 2040
+    },
+    {
+      "path": "avrone/ops.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "1fe5a4b8baa40c8a48fffd47fdef9ca0fce36c04c142cf8b4bd854a39be698d3",
+      "size_bytes": 1287
+    },
+    {
+      "path": "avrone/organization.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "921d803764ba238fb7ae3ef5bc5d42cffe4d593917c785443d8daea3c78f3ff9",
+      "size_bytes": 11279
+    },
+    {
+      "path": "avrone/policy.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "9c439d7479a795227d17c0bd105e8f5e7810171a8eed8d24c6a918eae7242d54",
+      "size_bytes": 1163
+    },
+    {
+      "path": "avrone/rbac.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "d9fde80551ad46f7a5b36e3f73bb85c1992d7b5feafa058238ca94512bd55fa6",
+      "size_bytes": 903
+    },
+    {
+      "path": "avrone/releases.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "ec4d9a749978be72f59c79844c109626563df554355115234dc93fd0267f8ca0",
+      "size_bytes": 1373
+    },
+    {
+      "path": "avrone/scheduler.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "464fa0c2e224dca4977a02d7aa0578585cfb063be0716ba26fae2e1360c62170",
+      "size_bytes": 1895
+    },
+    {
+      "path": "avrone/settings.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "0ff9721c272f0625c58634f4855e2fedf8ac5b2a143349c17848a8c1d230aa3e",
+      "size_bytes": 2006
+    },
+    {
+      "path": "avrone/signer.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "3ec24e89ab4228a11ef5e5210acdcdc3e8ad9c24609077922574725396c7f3d1",
+      "size_bytes": 856
+    },
+    {
+      "path": "avrone/store.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "264b00d7b41a600f88528f73a34c5c6ae5a6dacd77bdab6c431850103c90a2a9",
+      "size_bytes": 6773
+    },
+    {
+      "path": "avrone/vault.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "3eef91d71467e3da0b94e2cf1a0edf99bfe0c86cd9b040c8edb476814fd31b48",
+      "size_bytes": 1173
+    },
+    {
+      "path": "avrone/workflows.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "daa832a50718d5b68679e06cb601b85faafd50c488e68ed22de07e623b75e034",
+      "size_bytes": 3221
+    },
+    {
+      "path": "avrone/workspace.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "4cb8d0fa7d7a561c3e5b500b0481d6fe346f4aeb5326a2f07e088d8d7588f074",
+      "size_bytes": 1057
+    },
+    {
+      "path": "compose.yaml",
+      "provenance": "inherited-or-updated",
+      "sha256": "c4591cb1182b875c74d14e3a0a9c9b08da05b400da1447414bbdfee8c38d0823",
+      "size_bytes": 700
+    },
+    {
+      "path": "docs/CONSTITUTIONAL_ORGANIZATION.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "28604a630cd6f252494f47b583c6ae9a7eb8200caac7456a714be66b1a423707",
+      "size_bytes": 641
+    },
+    {
+      "path": "docs/CUSTOM_PREINSTALLED_SERVICES.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "60c079ae367ac73ba47dd6fd8c3918b93e4800cf8e39bf99ce948053e51311f1",
+      "size_bytes": 893
+    },
+    {
+      "path": "docs/GAP_CLOSURE_V1.3.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "dda26c5806981e60776f05c290a47cc4804aaf50bf492eb86fd99d9f3780d8c5",
+      "size_bytes": 499
+    },
+    {
+      "path": "docs/MISSING_AND_RECOVERY.md",
+      "provenance": "inherited-or-updated",
+      "sha256": "99b5187494a6c2ba57a399c4afc77ea26a9ae149e59a2e1ec44535f32afcd8be",
+      "size_bytes": 839
+    },
+    {
+      "path": "docs/OPERATIONAL_CONNECTORS.md",
+      "provenance": "regenerated",
+      "sha256": "f035075ee03c0120babd3b99eab465b0190cd46f70c82eeafdfc30cd2063210f",
+      "size_bytes": 745
+    },
+    {
+      "path": "infra/k8s/deployment.yaml",
+      "provenance": "inherited-or-updated",
+      "sha256": "04d2d4ce32308357a2526fa1909c6909ad58ec91456fe915849abfe8ecf19c1f",
+      "size_bytes": 912
+    },
+    {
+      "path": "pyproject.toml",
+      "provenance": "inherited-or-updated",
+      "sha256": "617cc95f16aaa6835f63fb5b7b82562ceab5aef6f8c2c3b0901a1b59610dec31",
+      "size_bytes": 536
+    },
+    {
+      "path": "scripts/bootstrap.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "92e5a77434823bf8b5c01819e7891ba5789c3c0bd64a53cb91e3ef72cf1a9993",
+      "size_bytes": 728
+    },
+    {
+      "path": "supabase/migrations/0001_core.sql",
+      "provenance": "inherited-or-updated",
+      "sha256": "c933744c2cd7a5be2ab4d64eea98205fefc209908eb7afb54a34008df541aa08",
+      "size_bytes": 1497
+    },
+    {
+      "path": "supabase/migrations/0002_control12_rls_policies.sql",
+      "provenance": "regenerated",
+      "sha256": "46d8183a0885e7626e4db93641dc610d819202ec9e9d291e89281a5cb61b3d93",
+      "size_bytes": 1484
+    },
+    {
+      "path": "tests/test_connectors.py",
+      "provenance": "regenerated",
+      "sha256": "7c11e782af1dae045d739074e51b8472f48c75ae326b4829ac68d42a72b5a534",
+      "size_bytes": 1658
+    },
+    {
+      "path": "tests/test_fabric.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "89979dd263e999cf361f2fac31f6751cc439baa043213f5068bbc8baabae5bf6",
+      "size_bytes": 2010
+    },
+    {
+      "path": "tests/test_local_services.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "bcaec50f18ddf1d8d82066f65bff3588f164a9a460fb1761f85e4a3e19fd9b7c",
+      "size_bytes": 1313
+    },
+    {
+      "path": "tests/test_operations_api.py",
+      "provenance": "regenerated",
+      "sha256": "bfcffc008baa17aab708a04bd95ba0581d309422383552d22265f2c43debb7ea",
+      "size_bytes": 3090
+    },
+    {
+      "path": "tests/test_organization.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "21553317688bde909d6c4c91466d74d7664dde172976013e50a8a712861413d8",
+      "size_bytes": 2877
+    },
+    {
+      "path": "tests/test_settings.py",
+      "provenance": "regenerated",
+      "sha256": "3e651796ff185e9fb34d9021b0baa77155556a6201f918593b6906b3c8e8eb43",
+      "size_bytes": 679
+    },
+    {
+      "path": "tests/test_v13.py",
+      "provenance": "inherited-or-updated",
+      "sha256": "6777e7f606abad1b6ecfdcfd5d57429bb2843c87dad8fc07a63a6d4c05da41cf",
+      "size_bytes": 3117
+    }
+  ],
+  "name": "Avrone Sovereign Fabric",
+  "schema": "avrone.release-manifest/v1",
+  "version": "1.5.0"
+}
