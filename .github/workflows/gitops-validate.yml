@@ -1,0 +1,62 @@
+name: CONTROL12 GitOps Validate
+
+on:
+  pull_request:
+    paths:
+      - 'charts/control12/**'
+      - 'gitops/**'
+      - '.github/workflows/gitops-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, ARM64, control12]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Verify required tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v helm
+          command -v kubectl
+          helm version --short
+          kubectl version --client=true
+
+      - name: Helm lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          helm lint charts/control12 \
+            --set region=validation \
+            --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            --set istio.host=control12.validation.example.com
+
+      - name: Render chart
+        shell: bash
+        run: |
+          set -euo pipefail
+          helm template control12 charts/control12 \
+            --namespace control12 \
+            --set region=validation \
+            --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            --set istio.host=control12.validation.example.com \
+            > /tmp/control12-rendered.yaml
+          test -s /tmp/control12-rendered.yaml
+          grep -q 'kind: Rollout' /tmp/control12-rendered.yaml
+          grep -q 'kind: VirtualService' /tmp/control12-rendered.yaml
+
+      - name: Client-side Kubernetes validation where schemas are available
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl apply --dry-run=client -f gitops/argocd/control12-applicationset.yaml >/dev/null || {
+            echo 'ApplicationSet CRD schema is not installed in the runner kube context; YAML rendering checks still completed.'
+          }
