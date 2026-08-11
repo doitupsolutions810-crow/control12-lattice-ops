@@ -12,6 +12,7 @@ shift 3
 [[ "$WORKSPACE" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "invalid workspace" >&2; exit 64; }
 command -v "$ENGINE" >/dev/null || { echo "container engine unavailable: $ENGINE" >&2; exit 69; }
 
+mkdir -p "$WORKSPACE_ROOT"
 ROOT="$(cd "$WORKSPACE_ROOT" && pwd -P)"
 TARGET="$ROOT/$TENANT/$WORKSPACE"
 mkdir -p "$TARGET"
@@ -19,7 +20,9 @@ TARGET="$(cd "$TARGET" && pwd -P)"
 case "$TARGET" in "$ROOT"/*) ;; *) echo "workspace escape denied" >&2; exit 77 ;; esac
 
 CMD=("$@")
-if [[ ${#CMD[@]} -eq 0 ]]; then CMD=("/bin/sh" "-lc" "find /workspace -maxdepth 2 -type f -print | sort | head -100"); fi
+if [[ ${#CMD[@]} -eq 0 ]]; then
+  CMD=("/bin/sh" "-lc" "find /workspace -maxdepth 2 -type f -print | sort | head -100")
+fi
 
 exec "$ENGINE" run --rm \
   --name "control12-${TENANT}-${WORKSPACE}-$$" \
