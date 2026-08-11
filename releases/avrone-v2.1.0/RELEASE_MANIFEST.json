@@ -1,0 +1,15 @@
+{
+  "schema": "avrone.release-evidence-summary/v1",
+  "version": "2.1.0",
+  "archive": "avrone-sovereign-fabric-v2.1.0.zip",
+  "archive_sha256": "bfbdccfdcead72227929803906fc3990a538e15508bb79200cb5b314c995ab29",
+  "archive_file_count": 104,
+  "manifest_tracked_file_count": 103,
+  "source_tree_sha256": "35ae1d7b672285eb414acfb44757162c313d703bd2be10c50c29ba6a6a547f52",
+  "deterministic_double_build": true,
+  "zip_crc_valid": true,
+  "zip_traversal_valid": true,
+  "contains_runtime_secrets": false,
+  "authoritative_per_file_manifest": "RELEASE_MANIFEST.json inside the canonical archive",
+  "checksum_contract": "The archive checksum is external-only to avoid a circular self-hash."
+}
