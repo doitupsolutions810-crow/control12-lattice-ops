@@ -6,6 +6,7 @@ on:
       - 'chat-fabric/**'
       - 'research-broker/**'
       - 'artifact-runtime/**'
+      - 'scripts/validate-chat-fabric.sh'
       - '.github/workflows/chat-fabric-validate.yml'
   workflow_dispatch:
 
@@ -22,33 +23,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Verify Node runtime
+      - name: CONTROL12 host validation gate
         shell: bash
         run: |
           set -euo pipefail
-          node --version
-          test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
+          bash scripts/validate-chat-fabric.sh
 
-      - name: Chat fabric syntax and tests
+      - name: Publish validation report summary
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
-          cd chat-fabric
-          npm run check
-          npm test
-
-      - name: Research broker syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd research-broker
-          npm run check
-
-      - name: Artifact runtime static validation
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash -n artifact-runtime/run-workspace-container.sh
-          grep -q -- '--network none' artifact-runtime/run-workspace-container.sh
-          grep -q -- '--cap-drop ALL' artifact-runtime/run-workspace-container.sh
-          grep -q -- '--read-only' artifact-runtime/run-workspace-container.sh
+          if [ -f .control12-validation/chat-fabric-validation.json ]; then
+            cat .control12-validation/chat-fabric-validation.json
+          fi
