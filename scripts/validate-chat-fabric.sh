@@ -37,13 +37,17 @@ run_check() {
 run_check "node-version" bash -lc 'command -v node >/dev/null && test "$(node -p '\''Number(process.versions.node.split(".")[0])'\'')" -ge 22'
 run_check "chat-syntax" bash -lc "cd '$ROOT/chat-fabric' && npm run check"
 run_check "chat-tests" bash -lc "cd '$ROOT/chat-fabric' && npm test"
+run_check "gateway-signature-required" bash -lc "grep -F 'CONTROL12_GATEWAY_SECRET is required when chat fabric binds beyond loopback' '$ROOT/chat-fabric/src/server.mjs' >/dev/null && grep -F 'createHmac(\"sha256\"' '$ROOT/chat-fabric/src/server.mjs' >/dev/null && grep -F 'identitySource: \"signed-gateway\"' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
 run_check "research-syntax" bash -lc "cd '$ROOT/research-broker' && npm run check"
+run_check "research-dns-pin" bash -lc "grep -F 'lookup: (_hostname, _options, callback) => callback(null, pinned.address, pinned.family)' '$ROOT/research-broker/src/server.mjs' >/dev/null && grep -F 'servername: url.hostname' '$ROOT/research-broker/src/server.mjs' >/dev/null"
+run_check "research-request-bounded" bash -lc "grep -F 'MAX_REQUEST_BYTES' '$ROOT/research-broker/src/server.mjs' >/dev/null && grep -F 'MAX_BYTES' '$ROOT/research-broker/src/server.mjs' >/dev/null"
 run_check "artifact-shell-syntax" bash -lc "bash -n '$ROOT/artifact-runtime/run-workspace-container.sh'"
 run_check "artifact-network-default-deny" bash -lc "grep -F -- '--network none' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-capabilities-dropped" bash -lc "grep -F -- '--cap-drop ALL' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-readonly-root" bash -lc "grep -F -- '--read-only' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-nonroot" bash -lc "grep -Eq -- '--user[ =]' '$ROOT/artifact-runtime/run-workspace-container.sh'"
-run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null"
+run_check "artifact-workspace-only-mount" bash -lc "grep -F -- '--mount \"type=bind,src=\$TARGET,dst=/workspace,rw\"' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
+run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'productionAuthority: false' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
 
 commit="unknown"
 if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -63,12 +67,16 @@ by_name = {c["name"]: c["result"] == "pass" for c in checks}
 criteria = {
     "tests_execute": by_name.get("chat-tests", False),
     "workspace_confinement_holds": by_name.get("chat-tests", False),
-    "research_broker_parses": by_name.get("research-syntax", False),
+    "identity_boundary_holds": by_name.get("gateway-signature-required", False),
+    "research_broker_bounded": all(by_name.get(k, False) for k in (
+        "research-syntax", "research-dns-pin", "research-request-bounded"
+    )),
     "artifact_runtime_default_deny": all(by_name.get(k, False) for k in (
         "artifact-network-default-deny",
         "artifact-capabilities-dropped",
         "artifact-readonly-root",
         "artifact-nonroot",
+        "artifact-workspace-only-mount",
     )),
     "chat_has_no_direct_production_authority": by_name.get("production-authority-denied", False),
 }
