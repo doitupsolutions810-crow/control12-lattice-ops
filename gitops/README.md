@@ -43,6 +43,8 @@ The chart does not install cluster-wide controllers. Cluster-wide lifecycle rema
 
 A production release is a Git commit that changes `image.digest` to the verified immutable digest produced by the CONTROL12 build/sign/attest pipeline. The desired-state commit is then reconciled by Argo CD. CI does not call `kubectl apply`, `helm upgrade`, or the Argo CD sync API for production.
 
+The committed empty digest is an intentional activation gate: the chart cannot render until an admitted release commit supplies `sha256:` followed by exactly 64 lowercase hexadecimal characters. CI tests both the valid render path and rejection of a mutable reference. Do not replace the empty value with a fabricated or example production digest.
+
 Argo CD automated sync is configured with prune and self-heal. It is not treated as an automatic rollback engine. Canary failure handling belongs to Argo Rollouts analysis; a failed AnalysisRun aborts the rollout and returns traffic to the stable ReplicaSet.
 
 ## Canary sequence

@@ -53,10 +53,33 @@ jobs:
           grep -q 'kind: Rollout' /tmp/control12-rendered.yaml
           grep -q 'kind: VirtualService' /tmp/control12-rendered.yaml
 
+      - name: Verify immutable digest gate fails closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if helm template control12 charts/control12 \
+            --namespace control12 \
+            --set region=validation \
+            --set image.digest=latest \
+            --set istio.host=control12.validation.example.com \
+            >/tmp/control12-invalid-render.yaml 2>/tmp/control12-invalid-render.err; then
+            echo 'Mutable image reference unexpectedly passed Helm validation.' >&2
+            exit 1
+          fi
+          grep -q 'image.digest must match sha256' /tmp/control12-invalid-render.err
+
       - name: Client-side Kubernetes validation where schemas are available
         shell: bash
         run: |
           set -euo pipefail
-          kubectl apply --dry-run=client -f gitops/argocd/control12-applicationset.yaml >/dev/null || {
+          if kubectl apply --dry-run=client -f gitops/argocd/control12-applicationset.yaml \
+            >/tmp/control12-applicationset-validation.out \
+            2>/tmp/control12-applicationset-validation.err; then
+            exit 0
+          fi
+          if grep -q 'no matches for kind "ApplicationSet"' /tmp/control12-applicationset-validation.err; then
             echo 'ApplicationSet CRD schema is not installed in the runner kube context; YAML rendering checks still completed.'
-          }
+            exit 0
+          fi
+          cat /tmp/control12-applicationset-validation.err >&2
+          exit 1

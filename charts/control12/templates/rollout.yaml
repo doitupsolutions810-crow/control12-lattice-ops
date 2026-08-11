@@ -1,4 +1,7 @@
 {{- $digest := required "image.digest must be set to an immutable sha256 digest" .Values.image.digest -}}
+{{- if not (regexMatch "^sha256:[a-f0-9]{64}$" $digest) -}}
+{{- fail "image.digest must match sha256 followed by exactly 64 lowercase hexadecimal characters" -}}
+{{- end -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
