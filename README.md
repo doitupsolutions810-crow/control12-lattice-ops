@@ -1,6 +1,25 @@
 # CONTROL12 Lattice Ops
 
-Operational workers, live integration harnesses, and supporting scripts for the CONTROL12 / CycleKernel lattice (v15–v30 lineage).
+Operational workers, live integration harnesses, and supporting scripts for the CONTROL12 / CycleKernel lattice (v15–v30 lineage), now extended with the CONTROL12 Sovereign Cognitive Fabric v5 control architecture.
+
+## CONTROL12 Sovereign Cognitive Fabric v5
+
+The v5 layer converts conversational and agent requests into typed intents, deterministic execution plans, bounded capabilities, policy admission, evidence-native deployment, attestation, and immutable ledger records.
+
+Core flow:
+
+`INTENT -> PLAN -> POLICY -> BUILD -> VERIFY -> ADMIT -> EXECUTE -> OBSERVE -> ATTEST -> LEARN`
+
+New v5 assets:
+
+- `docs/CONTROL12_V5_SOVEREIGN_COGNITIVE_FABRIC.md` — architecture and safety invariants
+- `schemas/control12.intent.v5.schema.json` — typed intent schema
+- `control-plane/planner.py` — deterministic release execution planner
+- `control-plane/agent-capabilities.json` — bounded five-agent capability model plus supervisor
+- `policy/recovery-policy.v5.yaml` — bounded autonomous recovery policy
+- `tests/test_v5_planner.py` — planner validation
+
+Production-changing actions are never considered valid solely because an LLM emitted a command or a process returned exit code 0. The v5 invariant requires an authorized intent, deterministic policy allow decision, evidence chain, and attestation.
 
 ## Scope
 
