@@ -1,0 +1,43 @@
+name: CONTROL12 Runner Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: [self-hosted, macOS, ARM64, control12]
+    timeout-minutes: 10
+    steps:
+      - name: Verify runner identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner: ${RUNNER_NAME}"
+          echo "OS: ${RUNNER_OS}"
+          echo "Arch: ${RUNNER_ARCH}"
+          uname -a
+          test "$(uname -m)" = "arm64"
+          sw_vers
+          python3 --version
+
+      - name: Check local runner API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8472/ >/dev/null
+          echo "CONTROL12 local runner API reachable on 127.0.0.1:8472"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: CONTROL12 runtime preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x ./scripts/preflight-runtime.sh
+          ./scripts/preflight-runtime.sh
