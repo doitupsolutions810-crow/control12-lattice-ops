@@ -10,17 +10,32 @@ process.env.CONTROL12_WORKSPACE_ROOT = root;
 const workspace = await import(`../src/workspace.mjs?test=${Date.now()}`);
 const policy = await import(`../src/policy.mjs?test=${Date.now()}`);
 
-test("workspace writes are revisioned and readable", async () => {
-  const revision = await workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "generated/app.js", content: "console.log('ok')", actor: "tester" });
-  assert.match(revision.contentDigest, /^sha256:[a-f0-9]{64}$/);
+test("workspace writes are revisioned, chained, and readable", async () => {
+  const first = await workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "generated/app.js", content: "console.log('ok')", actor: "tester" });
+  const second = await workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "generated/app.js", content: "console.log('v2')", actor: "tester" });
+  assert.match(first.contentDigest, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(first.parent, null);
+  assert.equal(second.parent, first.id);
   const read = await workspace.readWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "generated/app.js" });
-  assert.equal(read.content, "console.log('ok')");
+  assert.equal(read.content, "console.log('v2')");
   const status = await workspace.workspaceStatus("t1", "w1");
-  assert.equal(status.revisions, 1);
+  assert.equal(status.revisions, 2);
+  assert.equal(status.lastRevision.id, second.id);
 });
 
 test("path traversal is denied", async () => {
   await assert.rejects(() => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "../../escape", content: "no" }), /escape denied/);
+});
+
+test("symlink traversal out of workspace is denied", async () => {
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "control12-outside-"));
+  const workspaceRoot = path.join(root, "t1", "w2");
+  await workspace.ensureWorkspace("t1", "w2");
+  await fs.symlink(outside, path.join(workspaceRoot, "generated", "escape-link"));
+  await assert.rejects(
+    () => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w2", relativePath: "generated/escape-link/pwned.txt", content: "no" }),
+    /symlink traversal denied/
+  );
 });
 
 test("workspace memory is scoped", async () => {
