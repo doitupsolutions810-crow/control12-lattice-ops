@@ -1,5 +1,6 @@
 import { AvroneClient } from '../../../lib/avrone-client';
 import { localLatticeAugmentation } from '../../../lib/local-lattice';
+import { deterministicSnapshotReply } from '../../../lib/snapshot-v72';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,14 +18,20 @@ const UPSTREAM_TIMEOUT_MS = Number(process.env.AVRONE_CHAT_UPSTREAM_TIMEOUT_MS |
 function assertAllowedOrigin(req: Request) {
   const origin = req.headers.get('origin');
   if (!origin) return;
-  const requestOrigin = new URL(req.url).origin;
+  const requestUrl = new URL(req.url);
+  const forwardedHost = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  const host = forwardedHost || req.headers.get('host');
+  const forwardedProto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+  const protocol = forwardedProto || requestUrl.protocol.replace(':', '');
+  const requestOrigins = new Set([requestUrl.origin]);
+  if (host && /^(https?|http)$/.test(protocol)) requestOrigins.add(`${protocol}://${host}`);
   const configured = new Set(
     (process.env.AVRONE_ALLOWED_ORIGINS || '')
       .split(',')
       .map(value => value.trim())
       .filter(Boolean)
   );
-  if (origin !== requestOrigin && !configured.has(origin)) throw new Error('request origin denied');
+  if (!requestOrigins.has(origin) && !configured.has(origin)) throw new Error('request origin denied');
 }
 
 async function readBoundedJson(req: Request) {
@@ -76,6 +83,20 @@ function validatedUpstreamBase() {
   return url.toString().replace(/\/$/, '');
 }
 
+function deterministicStream(content: string, latticeOffline: boolean, latticeSource: string) {
+  const payload = JSON.stringify({ choices: [{ delta: { content } }] });
+  return new Response(`data: ${payload}\n\ndata: [DONE]\n\n`, {
+    status: 200,
+    headers: {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-store',
+      'x-lattice-offline': latticeOffline ? '1' : '0',
+      'x-lattice-source': latticeSource,
+      'x-avrone-mode': 'deterministic-snapshot'
+    }
+  });
+}
+
 export async function POST(req: Request) {
   try {
     assertAllowedOrigin(req);
@@ -108,15 +129,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.XAI_API_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return Response.json(
-        {
-          error: 'XAI_API_KEY or OPENAI_API_KEY is required',
-          systemAugmentation,
-          latticeOffline,
-          latticeSource
-        },
-        { status: 500 }
-      );
+      return deterministicStream(deterministicSnapshotReply(userText), latticeOffline, latticeSource);
     }
 
     const wired: Msg[] = [
@@ -156,7 +169,8 @@ export async function POST(req: Request) {
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-cache',
       'x-lattice-offline': latticeOffline ? '1' : '0',
-      'x-lattice-source': latticeSource
+      'x-lattice-source': latticeSource,
+      'x-avrone-mode': 'provider'
     });
 
     return new Response(upstream.body, { status: 200, headers });

@@ -1,5 +1,11 @@
 # Operating-system metadata
 .DS_Store
+
+# Browser test artifacts
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
 **/.DS_Store
 
 # JavaScript dependencies and build output
@@ -30,4 +36,3 @@ __pycache__/
 .env.*
 !.env.example
 !*.env.example
-

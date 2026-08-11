@@ -1,7 +1,16 @@
-# Avrone Chat
+# Avrone Due’Krey · CONTROL12 Verified Lattice Console
 
-Next.js chatbot wired to CONTROL12 lattice (`/api/v1/chat/session` + `/turn`).
-Falls back to a **local lattice shim** when the platform is unreachable.
+Next.js dashboard combining a verified v72 package snapshot, bounded Avrone chat,
+and a browser-local coding workspace. Snapshot values are explicitly package-derived
+and are never presented as live telemetry.
+
+Without a model-provider key, chat uses a deterministic, server-owned snapshot
+responder. With a provider key, it uses the configured model endpoint. In both modes,
+client system-role messages and chatbot production mutations remain denied.
+
+The workspace persists in the current browser using local storage and emits a
+SHA-256 hash-linked revision each time a file is saved. It does not execute code,
+upload files, read secrets, or confer production authority.
 
 ## Env
 
