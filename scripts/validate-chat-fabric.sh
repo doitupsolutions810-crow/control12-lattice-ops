@@ -4,16 +4,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${CONTROL12_VALIDATION_DIR:-$ROOT/.control12-validation}"
 REPORT="$OUT_DIR/chat-fabric-validation.json"
+RESULTS="$OUT_DIR/checks.tsv"
 mkdir -p "$OUT_DIR"
+: > "$RESULTS"
 
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 status="pass"
 failures=()
-checks=()
 
 record_check() {
   local name="$1" result="$2" detail="$3"
-  checks+=("$(printf '{\"name\":%q,\"result\":%q,\"detail\":%q}' "$name" "$result" "$detail")")
+  detail="${detail//$'\n'/ }"
+  printf '%s\t%s\t%s\n' "$name" "$result" "${detail:0:1000}" >> "$RESULTS"
 }
 
 run_check() {
@@ -24,11 +26,11 @@ run_check() {
   rc=$?
   set -e
   if [ "$rc" -eq 0 ]; then
-    record_check "$name" "pass" "${output:0:1000}"
+    record_check "$name" "pass" "$output"
   else
     status="fail"
     failures+=("$name")
-    record_check "$name" "fail" "${output:0:1000}"
+    record_check "$name" "fail" "$output"
   fi
 }
 
@@ -41,6 +43,7 @@ run_check "artifact-network-default-deny" bash -lc "grep -F -- '--network none' 
 run_check "artifact-capabilities-dropped" bash -lc "grep -F -- '--cap-drop ALL' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-readonly-root" bash -lc "grep -F -- '--read-only' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-nonroot" bash -lc "grep -Eq -- '--user[ =]' '$ROOT/artifact-runtime/run-workspace-container.sh'"
+run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null"
 
 commit="unknown"
 if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -48,9 +51,27 @@ if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-t
 fi
 
 finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-python3 - "$REPORT" "$status" "$started_at" "$finished_at" "$commit" "${failures[*]:-}" <<'PY'
+python3 - "$REPORT" "$RESULTS" "$status" "$started_at" "$finished_at" "$commit" <<'PY'
 import json, os, sys
-report, status, started, finished, commit, failures = sys.argv[1:]
+report, results_file, status, started, finished, commit = sys.argv[1:]
+checks = []
+with open(results_file, encoding="utf-8") as f:
+    for line in f:
+        name, result, detail = line.rstrip("\n").split("\t", 2)
+        checks.append({"name": name, "result": result, "detail": detail})
+by_name = {c["name"]: c["result"] == "pass" for c in checks}
+criteria = {
+    "tests_execute": by_name.get("chat-tests", False),
+    "workspace_confinement_holds": by_name.get("chat-tests", False),
+    "research_broker_parses": by_name.get("research-syntax", False),
+    "artifact_runtime_default_deny": all(by_name.get(k, False) for k in (
+        "artifact-network-default-deny",
+        "artifact-capabilities-dropped",
+        "artifact-readonly-root",
+        "artifact-nonroot",
+    )),
+    "chat_has_no_direct_production_authority": by_name.get("production-authority-denied", False),
+}
 data = {
     "schema": "control12.chat-fabric.validation/v1",
     "status": status,
@@ -58,14 +79,9 @@ data = {
     "finished_at": finished,
     "commit": commit,
     "host": os.uname().nodename,
-    "failures": failures.split() if failures else [],
-    "success_criteria": {
-        "tests_execute": status == "pass",
-        "workspace_confinement_tested": True,
-        "research_broker_bounded": True,
-        "artifact_runtime_bounded": True,
-        "chat_has_no_direct_production_authority": True
-    }
+    "checks": checks,
+    "success_criteria": criteria,
+    "success": status == "pass" and all(criteria.values()),
 }
 with open(report, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, sort_keys=True)
