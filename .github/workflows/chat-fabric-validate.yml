@@ -1,0 +1,39 @@
+name: CONTROL12 Chat Fabric Validate
+
+on:
+  pull_request:
+    paths:
+      - 'chat-fabric/**'
+      - 'research-broker/**'
+      - 'artifact-runtime/**'
+      - 'scripts/validate-chat-fabric.sh'
+      - '.github/workflows/chat-fabric-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, ARM64, control12]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: CONTROL12 host validation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/validate-chat-fabric.sh
+
+      - name: Publish validation report summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f .control12-validation/chat-fabric-validation.json ]; then
+            cat .control12-validation/chat-fabric-validation.json
+          fi
