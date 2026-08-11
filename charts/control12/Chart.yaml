@@ -1,0 +1,6 @@
+apiVersion: v2
+name: control12
+description: CONTROL12 GitOps progressive delivery chart for Argo CD, Argo Rollouts, and Istio
+type: application
+version: 0.1.0
+appVersion: "5.0.0"
