@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CONTROL12 Sovereign Platform</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>CONTROL12 Sovereign Platform</h1>
+    <p class="sub">Agents · Workflows · Living Intermediate</p>
+  </header>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Health</h2>
+      <div id="health" class="metric">—</div>
+    </div>
+    <div class="card">
+      <h2>Components</h2>
+      <div id="components" class="metric">—</div>
+    </div>
+    <div class="card">
+      <h2>Workflows</h2>
+      <div id="workflows" class="metric">—</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Dependencies</h2>
+    <div id="dependency" class="pills"></div>
+  </section>
+
+  <section class="card">
+    <h2>Living Intermediate (Additive)</h2>
+    <div id="resonant" class="pills"></div>
+  </section>
+
+  <section class="card">
+    <h2>Core Agents</h2>
+    <div id="agents" class="pills"></div>
+  </section>
+
+  <section class="card">
+    <h2>Submit Workflow</h2>
+    <form id="workflow-form">
+      <input name="name" placeholder="workflow name" required />
+      <input name="message" placeholder="verifier message" required />
+      <button type="submit">Run</button>
+    </form>
+    <button id="refresh" type="button">Refresh</button>
+    <pre id="output"></pre>
+  </section>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Named tunnel + optional origin mTLS.
+# Copy to ~/.cloudflared/config.yml (mode 600). Never commit real credentials.
+#
+# Origin mTLS (platform CONTROL12_MTLS=1):
+#   1. bash scripts/gen-mtls-certs.sh
+#   2. Platform env: CONTROL12_MTLS=1 CONTROL12_TLS_CERT/KEY/CA
+#   3. Set originRequest tls client cert/key below to ~/.control12-mtls/client.*
+#   4. service: https://127.0.0.1:4400
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /home/YOU/.cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: platform.example.com
+    service: https://127.0.0.1:4400
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+      # Present client cert to origin (mTLS)
+      tlsClientCert: /home/YOU/.control12-mtls/client.pem
+      tlsClientKey: /home/YOU/.control12-mtls/client.key
+  - service: http_status:404

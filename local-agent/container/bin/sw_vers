@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+name="Linux"
+version="unknown"
+
+if [ -r /etc/os-release ]; then
+  . /etc/os-release
+  name="${PRETTY_NAME:-${NAME:-Linux}}"
+  version="${VERSION_ID:-unknown}"
+fi
+
+printf 'ProductName:\t%s\n' "$name"
+printf 'ProductVersion:\t%s\n' "$version"
+printf 'BuildVersion:\t%s\n' "$(uname -r)"

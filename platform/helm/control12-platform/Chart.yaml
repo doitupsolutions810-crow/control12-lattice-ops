@@ -1,0 +1,6 @@
+apiVersion: v2
+name: control12-platform
+description: CONTROL12 Sovereign Platform control plane
+version: 1.0.0
+appVersion: "1.0.0"
+type: application

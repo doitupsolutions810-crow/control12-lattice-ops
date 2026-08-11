@@ -1,0 +1,32 @@
+services:
+  model:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command: ["-hf","${CONTROL12_MODEL_REPO:-ggml-org/gemma-3-4b-it-GGUF:Q4_K_M}","--host","0.0.0.0","--port","8080","--ctx-size","8192","--parallel","2","--slots","--jinja"]
+    volumes: ["model-cache:/root/.cache"]
+    healthcheck: {test: ["CMD-SHELL","curl -fsS http://127.0.0.1:8080/health >/dev/null"], interval: 15s, timeout: 5s, retries: 60, start_period: 60s}
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+  local-agent:
+    image: ghcr.io/doitupsolutions810-crow/control12-local-agent:0.8.0
+    environment: {CONTROL12_MODEL_HOST: model, CONTROL12_MODEL_PORT: "8080"}
+    depends_on: {model: {condition: service_healthy}}
+    volumes: ["local-agent-state:/home/control12/.control12/state"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+  fabric:
+    build: .
+    environment:
+      CONTROL12_FABRIC_SECRET: ${CONTROL12_FABRIC_SECRET:?required}
+      CONTROL12_BOOTSTRAP_SECRET: ${CONTROL12_BOOTSTRAP_SECRET:?required}
+      CONTROL12_LOCAL_AGENT_URL: http://local-agent:8080
+      CONTROL12_ENVIRONMENT: ${CONTROL12_ENVIRONMENT:-development}
+    ports: ["127.0.0.1:4500:4500"]
+    volumes: ["fabric-state:/state"]
+    depends_on: {local-agent: {condition: service_healthy}}
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m"]
+volumes: {model-cache: {}, local-agent-state: {}, fabric-state: {}}

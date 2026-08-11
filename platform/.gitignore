@@ -1,0 +1,11 @@
+.control12-platform/
+!.control12-platform/known-remotes.example.txt
+node_modules/
+*.log
+.env
+.env.*
+cloudflared/config.yml
+cloudflared/config.yaml
+cloudflared/*.json
+cloudflared/*.pem
+cloudflared/cert.pem

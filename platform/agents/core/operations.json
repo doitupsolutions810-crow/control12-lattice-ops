@@ -1,0 +1,1 @@
+{"id":"operations","role":"runtime","purpose":"Operate services and deployments under policy.","capabilities":["deployment.execute","agent.invoke"]}

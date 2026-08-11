@@ -1,0 +1,12 @@
+{
+  "schema": "control12.plugin/v1",
+  "id": "plugin.supabase",
+  "version": "1.0.0",
+  "provider": "supabase",
+  "execution": "connector",
+  "requiresApproval": true,
+  "capabilities": ["supabase.read", "supabase.write"],
+  "network": ["provider-api"],
+  "secrets": ["provider-managed-oauth"],
+  "trust": { "signedManifestRequired": true, "auditRequired": true }
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "control12.agent-capabilities/v5",
+  "agents": {
+    "supervisor": {
+      "allow": ["intent.read", "plan.create", "policy.request", "agent.delegate", "ledger.append"],
+      "deny": ["secret.read", "policy.modify"]
+    },
+    "reasoning": {
+      "allow": ["intent.read", "evidence.read", "plan.propose"],
+      "deny": ["deployment.execute", "secret.read", "policy.modify"]
+    },
+    "coding": {
+      "allow": ["workspace.read", "workspace.write", "artifact.propose"],
+      "deny": ["production.execute", "secret.read", "policy.modify"]
+    },
+    "artifact": {
+      "allow": ["workspace.read", "artifact.build", "artifact.hash", "sbom.generate", "provenance.generate"],
+      "deny": ["production.execute", "secret.read", "policy.modify"]
+    },
+    "infrastructure": {
+      "allow": ["cluster.read", "deployment.propose", "deployment.execute:staging", "deployment.rollback:staging"],
+      "deny": ["secret.read", "production.execute", "policy.modify"]
+    },
+    "verifier": {
+      "allow": ["evidence.read", "signature.verify", "sbom.verify", "provenance.verify", "attestation.verify"],
+      "deny": ["workspace.write", "deployment.execute", "policy.modify"]
+    }
+  },
+  "invariants": {
+    "child_capabilities_must_be_subset_of_parent": true,
+    "deny_overrides_allow": true,
+    "production_execution_requires_explicit_policy_allow": true
+  }
+}

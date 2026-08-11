@@ -1,0 +1,1 @@
+{"id":"artifact","role":"supply-chain","purpose":"Build manifests, hashes, and provenance.","capabilities":["artifact.build","registry.write"]}

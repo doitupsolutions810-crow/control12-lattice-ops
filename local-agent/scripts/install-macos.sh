@@ -2,11 +2,21 @@
 set -Eeuo pipefail
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(git -C "$SOURCE_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+EXPECTED_ROOT="${CONTROL12_REPO_ROOT:-$HOME/control12-lattice-ops}"
 ROOT="${CONTROL12_ROOT:-$HOME/.control12}"
 APP="$ROOT/app"
 BIN="$HOME/.local/bin"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/backups/install-$STAMP"
+
+if [ "$REPO_ROOT" != "$EXPECTED_ROOT" ]; then
+  echo "ERROR: install from the canonical checkout at $EXPECTED_ROOT" >&2
+  echo "Resolved repository root: ${REPO_ROOT:-none}" >&2
+  exit 1
+fi
+
+bash "$SOURCE_DIR/scripts/workspace-doctor.sh"
 
 if ! command -v brew >/dev/null 2>&1; then
   if [ -x /opt/homebrew/bin/brew ]; then
@@ -27,7 +37,9 @@ NODE="$(brew --prefix node@22)/bin/node"
 
 "$NODE" --check "$SOURCE_DIR/src/server.mjs"
 "$NODE" --check "$SOURCE_DIR/src/cli.mjs"
+"$NODE" --check "$SOURCE_DIR/scripts/apply-deterministic-quorum.mjs"
 bash -n "$SOURCE_DIR/scripts/control12-app"
+bash -n "$SOURCE_DIR/scripts/workspace-doctor.sh"
 
 mkdir -p "$APP" "$BIN" "$ROOT/state" "$ROOT/logs" "$ROOT/run" "$BACKUP"
 
@@ -42,12 +54,28 @@ install -m 0644 "$SOURCE_DIR/src/cli.mjs" "$APP/cli.mjs"
 install -m 0755 "$SOURCE_DIR/scripts/control12-app" "$BIN/control12-app"
 ln -sf "$BIN/control12-app" "$BIN/control12"
 
+"$NODE" "$SOURCE_DIR/scripts/apply-deterministic-quorum.mjs" "$APP/server.mjs"
+"$NODE" --check "$APP/server.mjs"
+
 PATH_LINE='export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"'
 grep -Fq "$PATH_LINE" "$HOME/.zshrc" 2>/dev/null || printf '\n%s\n' "$PATH_LINE" >> "$HOME/.zshrc"
 
+"$BIN/control12-app" workspace-doctor
 "$BIN/control12-app" restart
 "$BIN/control12-app" doctor
 "$BIN/control12-app" capabilities
 
-echo "CONTROL12 v0.8.0 installed"
+QUORUM_OUT="/tmp/control12-install-quorum.json"
+"$BIN/control12-app" quorum \
+  "Verify the local CONTROL12 installation from collected evidence only." \
+  > "$QUORUM_OUT"
+
+jq -e '
+  .provider == "deterministic-local-evidence" and
+  .synthesis.decision != "UNKNOWN" and
+  (.reports | length) == 5
+' "$QUORUM_OUT" >/dev/null
+
+echo "CONTROL12 v0.8.1 installed"
 echo "Backup: $BACKUP"
+echo "Quorum result: $QUORUM_OUT"

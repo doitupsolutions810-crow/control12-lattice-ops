@@ -1,0 +1,1 @@
+{"id":"figma","version":"2.0.0","builtin":true,"provider":"Figma","capabilities":["design.read","design.write","diagram.write"],"allowedHosts":["api.figma.com"],"auth":{"type":"oauth","secretEnv":"FIGMA_TOKEN"},"baseUrl":"https://api.figma.com/","allowedMethods":["GET","POST","PATCH","DELETE"],"timeoutMs":120000,"maxResponseBytes":1000000}

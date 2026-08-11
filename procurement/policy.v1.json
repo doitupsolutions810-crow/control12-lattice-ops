@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema": "control12.procurement-success-policy/v1",
+  "version": "1.0.0",
+  "purpose": "Separate permission to procure from permission to activate production.",
+  "principles": {
+    "procurementDoesNotEqualProductionApproval": true,
+    "securityAndEvidenceControlsCannotBeWaived": true,
+    "syntheticEvidenceMayNotSatisfyProductionGates": true,
+    "productionEvidenceClassRequired": true,
+    "requiredEvidenceClass": "production-acceptance",
+    "requiredEnvironment": "production"
+  },
+  "decisions": {
+    "procurement": [
+      "HOLD_EVIDENCE_CONTROL",
+      "HOLD_BASELINE_CONTROL",
+      "READY_FOR_PROCUREMENT",
+      "PROCUREMENT_IN_PROGRESS",
+      "ACCEPTANCE_READY"
+    ],
+    "production": [
+      "NO_GO",
+      "GO"
+    ]
+  },
+  "procurementEntryCriteria": [
+    {
+      "id": "P0",
+      "plainLanguage": "The evidence rules are visible and unchanged.",
+      "machineCheck": "Evidence status and schema endpoints return HTTP 200 and match the required trust contract.",
+      "mandatory": true
+    },
+    {
+      "id": "P1",
+      "plainLanguage": "The existing control plane and providers are reachable.",
+      "machineCheck": "G0 is PASS and provider telemetry is ready.",
+      "mandatory": true
+    },
+    {
+      "id": "P2",
+      "plainLanguage": "A buyer, budget owner, and acceptance date are named.",
+      "machineCheck": "Commercial ownership record exists.",
+      "mandatory": true
+    }
+  ],
+  "procurementBundles": [
+    {
+      "id": "B1",
+      "name": "Managed foundation",
+      "plainLanguage": "Buy one shared data service, secure secret storage, and a signed image registry.",
+      "coversGates": ["G1", "G2", "G4"],
+      "deliverables": [
+        "One managed Redis-compatible shared-state resource",
+        "Independent production credentials with a named rotation owner",
+        "One OCI registry supporting digest-pinned signed images and SBOMs"
+      ]
+    },
+    {
+      "id": "B2",
+      "name": "Worker capacity",
+      "plainLanguage": "Buy one controlled Linux worker for acceptance; add a second before availability is claimed.",
+      "coversGates": ["G3"],
+      "deliverables": [
+        "One outbound-only Linux acceptance worker",
+        "A second worker before high-availability or production availability claims"
+      ]
+    },
+    {
+      "id": "B3",
+      "name": "Acceptance and operations",
+      "plainLanguage": "Fund one acceptance window, named operators, monitoring, rollback, and recovery proof.",
+      "coversGates": ["G5", "G6"],
+      "deliverables": [
+        "A bounded health.echo canary and signed receipt",
+        "Named operational and change owners",
+        "Monitoring, rollback evidence, and one recovery exercise"
+      ]
+    }
+  ],
+  "productionActivationCriteria": {
+    "requiredGateStatuses": {
+      "G0": "PASS",
+      "G1": "PASS",
+      "G2": "PASS",
+      "G3": "PASS",
+      "G4": "PASS",
+      "G5": "PASS",
+      "G6": "PASS"
+    },
+    "operationsPhase": "READY",
+    "operationsOperational": true,
+    "evidenceTrustContractRequired": true
+  }
+}

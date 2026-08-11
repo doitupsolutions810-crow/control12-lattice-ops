@@ -1,0 +1,29 @@
+{
+  "schema": "control12.procurement-status/v1",
+  "version": "1.0.0",
+  "observedAt": "2026-07-31T19:23:25Z",
+  "procurementDecision": "HOLD_EVIDENCE_CONTROL",
+  "productionDecision": "NO_GO",
+  "productionScore": 15,
+  "productionTotal": 100,
+  "operationsPhase": "ACTIVATION_REQUIRED",
+  "plainLanguage": "The system may be scoped and priced, but purchase approval is held until the evidence-console contract is restored and verified.",
+  "singleImmediateHold": {
+    "code": "EVIDENCE_CONSOLE_ENDPOINTS_UNAVAILABLE",
+    "affectedEndpoints": [
+      "https://control12-evidence-console.vercel.app/api/status",
+      "https://control12-evidence-console.vercel.app/api/v1/evidence/schema"
+    ],
+    "observedHttpStatus": 404,
+    "nextAction": "Restore the complete evidence-console v5.3.1 artifact and verify both endpoints before procurement approval."
+  },
+  "liveBlockersAfterTrustRestoration": [
+    "NETWORK_DISTRIBUTED_STATE_INACTIVE",
+    "WORKER_BRIDGE_NOT_ACTIVATED"
+  ],
+  "deployments": {
+    "operations": "dpl_AjHAbj4nJCtnZvjNZ1MR86TFsiCT",
+    "successSnapshot": "dpl_DjFLwh5wssQXCQeEkSkhKCuVvbm5",
+    "evidenceConsole": "dpl_8X9Vp4qzNfqjqHPVyKZZYXtjgxXv"
+  }
+}

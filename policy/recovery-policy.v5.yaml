@@ -1,0 +1,20 @@
+schema: control12.recovery-policy/v5
+recovery_policy:
+  allowed:
+    - restart_workload
+    - reschedule_workload
+    - reduce_canary
+    - rollback_release
+  forbidden:
+    - modify_rbac
+    - rotate_root_keys
+    - disable_admission
+    - widen_network_policy
+  limits:
+    actions_per_incident: 5
+    maximum_region_scope: 1
+    human_approval_after: 2
+  production:
+    require_policy_allow: true
+    require_signed_artifact: true
+    require_attestation: true
