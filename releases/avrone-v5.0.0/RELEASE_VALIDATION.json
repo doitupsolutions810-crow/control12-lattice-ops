@@ -1,0 +1,13 @@
+{
+  "archive_members": 174,
+  "archive_sha256": "b69cdb87377346e16e5faa7ce9f058ee5f19ce8080642d4753e98c6873ac77de",
+  "authoritative_manifests": 1,
+  "credential_findings": [],
+  "deterministic_double_build": true,
+  "manifest_file_count": 173,
+  "manifest_mismatches": [],
+  "source_tree_sha256": "7b913b831f0db6886b2946c8fff3cd97c38f92ccb1c720c9a76a8e81b8f7c77f",
+  "traversal_paths": [],
+  "yaml_parse": "PASS",
+  "zip_crc": "PASS"
+}
