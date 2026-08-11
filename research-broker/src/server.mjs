@@ -16,7 +16,13 @@ const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
 
 function loadToken(file) {
   if (!file) return "";
-  const stat = fs.lstatSync(file);
+  let stat;
+  try {
+    stat = fs.lstatSync(file);
+  } catch (error) {
+    if (error.code === "ENOENT") throw new Error("research token file is unavailable");
+    throw error;
+  }
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("research token file must be a regular non-symlink file");
   if ((stat.mode & 0o077) !== 0) throw new Error("research token file permissions must deny group and other access");
   const token = fs.readFileSync(file, "utf8").trim();
@@ -147,6 +153,6 @@ http.createServer(async (req, res) => {
       observedAt: new Date().toISOString()
     });
   } catch (error) {
-    send(res, 400, { error: error.message, requestId });
+    send(res, /authorization denied/.test(error.message) ? 403 : 400, { error: error.message, requestId });
   }
 }).listen(PORT, HOST, () => console.log(`CONTROL12 research broker listening on http://${HOST}:${PORT}`));

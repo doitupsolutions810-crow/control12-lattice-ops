@@ -1,0 +1,33 @@
+# Operating-system metadata
+.DS_Store
+**/.DS_Store
+
+# JavaScript dependencies and build output
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+
+# Python caches and test output
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+
+# Local validation and runtime state
+.control12-validation/
+*.log
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+!*.env.example
+
