@@ -1,0 +1,54 @@
+name: CONTROL12 Chat Fabric Validate
+
+on:
+  pull_request:
+    paths:
+      - 'chat-fabric/**'
+      - 'research-broker/**'
+      - 'artifact-runtime/**'
+      - '.github/workflows/chat-fabric-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, ARM64, control12]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Verify Node runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          test "$(node -p 'process.versions.node.split(".")[0]')" -ge 22
+
+      - name: Chat fabric syntax and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd chat-fabric
+          npm run check
+          npm test
+
+      - name: Research broker syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research-broker
+          npm run check
+
+      - name: Artifact runtime static validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n artifact-runtime/run-workspace-container.sh
+          grep -q -- '--network none' artifact-runtime/run-workspace-container.sh
+          grep -q -- '--cap-drop ALL' artifact-runtime/run-workspace-container.sh
+          grep -q -- '--read-only' artifact-runtime/run-workspace-container.sh
