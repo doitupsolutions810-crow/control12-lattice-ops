@@ -6,6 +6,13 @@ import { appendMemory, readMemory, readWorkspaceFile, workspaceStatus, writeWork
 const HOST = process.env.CONTROL12_CHAT_HOST || "127.0.0.1";
 const PORT = Number(process.env.CONTROL12_CHAT_PORT || 4320);
 const MAX_BODY = Number(process.env.CONTROL12_CHAT_MAX_BODY || 2_000_000);
+const GATEWAY_SECRET = process.env.CONTROL12_GATEWAY_SECRET || "";
+const IDENTITY_MAX_SKEW_SECONDS = Number(process.env.CONTROL12_IDENTITY_MAX_SKEW_SECONDS || 60);
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+
+if (!LOOPBACK_HOSTS.has(HOST) && !GATEWAY_SECRET) {
+  throw new Error("CONTROL12_GATEWAY_SECRET is required when chat fabric binds beyond loopback");
+}
 
 function send(res, status, data) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -24,13 +31,41 @@ async function body(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+function header(req, name, fallback = "") {
+  const value = req.headers[name];
+  return Array.isArray(value) ? value[0] || fallback : value || fallback;
+}
+
+function safeEqualHex(expected, supplied) {
+  if (!/^[a-f0-9]{64}$/i.test(supplied || "")) return false;
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(supplied, "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function identity(req) {
-  return {
-    tenant: req.headers["x-control12-tenant"] || "default",
-    workspaceId: req.headers["x-control12-workspace"] || "default",
-    role: req.headers["x-control12-role"] || "user",
-    actor: req.headers["x-control12-actor"] || "chat-user"
+  const asserted = {
+    tenant: String(header(req, "x-control12-tenant", "default")),
+    workspaceId: String(header(req, "x-control12-workspace", "default")),
+    role: String(header(req, "x-control12-role", "user")),
+    actor: String(header(req, "x-control12-actor", "chat-user"))
   };
+
+  if (!GATEWAY_SECRET) {
+    return { ...asserted, role: "user", actor: "local-user", identitySource: "loopback-local" };
+  }
+
+  const timestamp = String(header(req, "x-control12-identity-timestamp"));
+  const signature = String(header(req, "x-control12-identity-signature"));
+  const seconds = Number(timestamp);
+  if (!Number.isFinite(seconds) || Math.abs(Date.now() / 1000 - seconds) > IDENTITY_MAX_SKEW_SECONDS) {
+    throw new Error("identity assertion expired or invalid");
+  }
+
+  const canonical = [asserted.tenant, asserted.workspaceId, asserted.role, asserted.actor, timestamp].join("\n");
+  const expected = crypto.createHmac("sha256", GATEWAY_SECRET).update(canonical).digest("hex");
+  if (!safeEqualHex(expected, signature)) throw new Error("identity assertion signature invalid");
+  return { ...asserted, identitySource: "signed-gateway" };
 }
 
 function researchRequest(payload, id) {
@@ -63,11 +98,13 @@ const server = http.createServer(async (req, res) => {
   const requestId = crypto.randomUUID();
   try {
     const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
-    const who = identity(req);
 
     if (req.method === "GET" && url.pathname === "/health") {
-      return send(res, 200, { status: "ok", service: "control12-chat-workspace-fabric", requestId });
+      return send(res, 200, { status: "ok", service: "control12-chat-workspace-fabric", requestId, identityMode: GATEWAY_SECRET ? "signed-gateway" : "loopback-local" });
     }
+
+    const who = identity(req);
+
     if (req.method === "GET" && url.pathname === "/v1/capabilities") {
       return send(res, 200, capabilitySnapshot());
     }
@@ -131,7 +168,8 @@ const server = http.createServer(async (req, res) => {
 
     send(res, 404, { error: "not found", requestId });
   } catch (error) {
-    send(res, /denied|not granted/.test(error.message) ? 403 : 400, { error: error.message, requestId });
+    const forbidden = /denied|not granted|identity assertion/.test(error.message);
+    send(res, forbidden ? 403 : 400, { error: error.message, requestId });
   }
 });
 
