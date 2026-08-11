@@ -3,9 +3,13 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const ROOT = path.resolve(process.env.CONTROL12_WORKSPACE_ROOT || path.join(process.env.HOME || "/tmp", ".control12", "workspaces"));
+const WRITABLE_AREAS = new Set(["source", "generated"]);
+const mutationQueues = new Map();
 
 function safeSegment(value, label) {
-  if (!/^[A-Za-z0-9._-]{1,128}$/.test(value || "")) throw new Error(`invalid ${label}`);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value || "") || value === "." || value === "..") {
+    throw new Error(`invalid ${label}`);
+  }
   return value;
 }
 
@@ -18,10 +22,70 @@ function workspaceRoot(tenant, workspaceId) {
 }
 
 function safeWorkspacePath(root, relativePath) {
-  const clean = String(relativePath || "").replace(/^\/+/, "");
+  const supplied = String(relativePath || "");
+  if (!supplied || path.isAbsolute(supplied) || supplied.includes("\\") || supplied.includes("\0")) {
+    throw new Error("workspace path escape denied");
+  }
+  const segments = supplied.split("/");
+  if (segments.some(segment => !segment || segment === "." || segment === "..")) {
+    throw new Error("workspace path escape denied");
+  }
+  const clean = segments.join(path.sep);
   const resolved = path.resolve(root, clean);
   if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) throw new Error("workspace path escape denied");
   return resolved;
+}
+
+function writableWorkspacePath(root, relativePath) {
+  const target = safeWorkspacePath(root, relativePath);
+  const [area] = path.relative(root, target).split(path.sep);
+  if (!WRITABLE_AREAS.has(area)) throw new Error("workspace internal path write denied");
+  return target;
+}
+
+async function withWorkspaceMutation(root, operation) {
+  const prior = mutationQueues.get(root) || Promise.resolve();
+  let release;
+  const current = new Promise(resolve => { release = resolve; });
+  const queued = prior.then(() => current);
+  mutationQueues.set(root, queued);
+  await prior;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (mutationQueues.get(root) === queued) mutationQueues.delete(root);
+  }
+}
+
+async function syncDirectory(directory) {
+  const handle = await fs.open(directory, "r");
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function atomicWriteFile(target, bytes) {
+  const directory = path.dirname(target);
+  const temporary = path.join(directory, `.${path.basename(target)}.${crypto.randomUUID()}.tmp`);
+  let handle;
+  try {
+    handle = await fs.open(temporary, "wx", 0o600);
+    await handle.writeFile(bytes);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await fs.rename(temporary, target);
+    await syncDirectory(directory);
+  } catch (error) {
+    if (handle) await handle.close().catch(() => {});
+    await fs.unlink(temporary).catch(unlinkError => {
+      if (unlinkError.code !== "ENOENT") throw unlinkError;
+    });
+    throw error;
+  }
 }
 
 async function assertNoSymlinkTraversal(root, target) {
@@ -45,7 +109,14 @@ async function assertNoSymlinkTraversal(root, target) {
 
 async function appendJsonl(file, record) {
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.appendFile(file, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+  const handle = await fs.open(file, "a", 0o600);
+  try {
+    await handle.writeFile(`${JSON.stringify(record)}\n`);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await syncDirectory(path.dirname(file));
 }
 
 async function readJsonlSafe(file) {
@@ -65,40 +136,50 @@ export async function ensureWorkspace(tenant, workspaceId) {
   const manifestPath = path.join(root, "workspace.manifest.json");
   try {
     const stat = await fs.lstat(manifestPath);
-    if (stat.isSymbolicLink()) throw new Error("workspace manifest symlink denied");
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("workspace manifest must be a regular non-symlink file");
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
     const manifest = { schema: "control12.workspace/v1", tenant, workspaceId, createdAt: new Date().toISOString(), revision: 0 };
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), { mode: 0o600, flag: "wx" });
+    try {
+      await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), { mode: 0o600, flag: "wx" });
+    } catch (writeError) {
+      if (writeError.code !== "EEXIST") throw writeError;
+    }
+    const stat = await fs.lstat(manifestPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("workspace manifest must be a regular non-symlink file");
   }
   return root;
 }
 
 export async function writeWorkspaceFile({ tenant, workspaceId, relativePath, content, actor = "chat-user" }) {
   const root = await ensureWorkspace(tenant, workspaceId);
-  const target = safeWorkspacePath(root, relativePath);
-  await assertNoSymlinkTraversal(root, target);
-  await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
-  await assertNoSymlinkTraversal(root, target);
+  const target = writableWorkspacePath(root, relativePath);
+  return withWorkspaceMutation(root, async () => {
+    await assertNoSymlinkTraversal(root, target);
+    await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+    await assertNoSymlinkTraversal(root, target);
 
-  const bytes = Buffer.from(String(content), "utf8");
-  await fs.writeFile(target, bytes, { mode: 0o600 });
+    const bytes = Buffer.from(String(content), "utf8");
+    const revisionFile = path.join(root, "execution", "revisions.jsonl");
+    const prior = await readJsonlSafe(revisionFile);
+    const previous = prior.at(-1) || null;
+    const unsignedRecord = {
+      schema: "control12.workspace-revision/v1",
+      id: crypto.randomUUID(),
+      parent: previous?.id || null,
+      parentHash: previous?.recordHash || null,
+      actor,
+      operation: "write",
+      path: path.relative(root, target),
+      contentDigest: digest(bytes),
+      observedAt: new Date().toISOString()
+    };
+    const record = { ...unsignedRecord, recordHash: digest(Buffer.from(JSON.stringify(unsignedRecord))) };
 
-  const revisionFile = path.join(root, "execution", "revisions.jsonl");
-  const prior = await readJsonlSafe(revisionFile);
-  const parent = prior.at(-1)?.id || null;
-  const record = {
-    schema: "control12.workspace-revision/v1",
-    id: crypto.randomUUID(),
-    parent,
-    actor,
-    operation: "write",
-    path: path.relative(root, target),
-    contentDigest: digest(bytes),
-    observedAt: new Date().toISOString()
-  };
-  await appendJsonl(revisionFile, record);
-  return record;
+    await atomicWriteFile(target, bytes);
+    await appendJsonl(revisionFile, record);
+    return record;
+  });
 }
 
 export async function readWorkspaceFile({ tenant, workspaceId, relativePath }) {

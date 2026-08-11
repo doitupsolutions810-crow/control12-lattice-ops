@@ -3,6 +3,7 @@ import https from "node:https";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
+import fs from "node:fs";
 
 const HOST = process.env.CONTROL12_RESEARCH_HOST || "127.0.0.1";
 const PORT = Number(process.env.CONTROL12_RESEARCH_PORT || 4330);
@@ -10,6 +11,36 @@ const ALLOW = new Set((process.env.CONTROL12_RESEARCH_ALLOW_HOSTS || "").split("
 const MAX_BYTES = Number(process.env.CONTROL12_RESEARCH_MAX_BYTES || 2_000_000);
 const MAX_REQUEST_BYTES = Number(process.env.CONTROL12_RESEARCH_MAX_REQUEST_BYTES || 64_000);
 const TIMEOUT_MS = Number(process.env.CONTROL12_RESEARCH_TIMEOUT_MS || 15000);
+const TOKEN_FILE = process.env.CONTROL12_RESEARCH_TOKEN_FILE || "";
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+
+function loadToken(file) {
+  if (!file) return "";
+  const stat = fs.lstatSync(file);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("research token file must be a regular non-symlink file");
+  if ((stat.mode & 0o077) !== 0) throw new Error("research token file permissions must deny group and other access");
+  const token = fs.readFileSync(file, "utf8").trim();
+  if (Buffer.byteLength(token) < 32 || Buffer.byteLength(token) > 4096) throw new Error("research token length is invalid");
+  return token;
+}
+
+const TOKEN = loadToken(TOKEN_FILE);
+if (!LOOPBACK_HOSTS.has(HOST) && !TOKEN) {
+  throw new Error("CONTROL12_RESEARCH_TOKEN_FILE is required when research broker binds beyond loopback");
+}
+
+function safeEqual(expected, supplied) {
+  const a = Buffer.from(expected);
+  const b = Buffer.from(supplied);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function authorize(req) {
+  if (!TOKEN) return;
+  const value = Array.isArray(req.headers.authorization) ? req.headers.authorization[0] : req.headers.authorization;
+  const supplied = typeof value === "string" && value.startsWith("Bearer ") ? value.slice(7) : "";
+  if (!safeEqual(TOKEN, supplied)) throw new Error("research authorization denied");
+}
 
 function send(res, status, data) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -100,8 +131,9 @@ function pinnedHttpsText(url, pinned) {
 http.createServer(async (req, res) => {
   const requestId = crypto.randomUUID();
   try {
-    if (req.method === "GET" && req.url === "/health") return send(res, 200, { status: "ok", requestId, allowHosts: [...ALLOW] });
+    if (req.method === "GET" && req.url === "/health") return send(res, 200, { status: "ok", requestId, authenticationRequired: Boolean(TOKEN) });
     if (req.method !== "POST" || req.url !== "/v1/fetch") return send(res, 404, { error: "not found", requestId });
+    authorize(req);
     const payload = await readJson(req);
     const { url, pinned } = await validateTarget(payload.url);
     const result = await pinnedHttpsText(url, pinned);

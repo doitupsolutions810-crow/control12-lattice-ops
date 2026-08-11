@@ -58,6 +58,8 @@ The coding agent can read/write workspace files and request workspace-confined t
 
 On a CONTROL12 host, run this service next to the local model/runtime and route external users through an authenticated gateway. The host OS/fabric owns configuration management, workspace volume mounts, container/VM scheduling, network egress policy, artifact quarantine, and production admission.
 
+The research broker binds to loopback by default. A non-loopback deployment must mount a regular token file readable only by the service account and set `CONTROL12_RESEARCH_TOKEN_FILE`. Do not place this bearer token in committed configuration or browser-facing environment variables.
+
 Recommended server boundary:
 
 ```text

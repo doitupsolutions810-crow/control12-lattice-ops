@@ -10,14 +10,17 @@ shift 3
 
 [[ "$TENANT" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "invalid tenant" >&2; exit 64; }
 [[ "$WORKSPACE" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "invalid workspace" >&2; exit 64; }
+[[ "$TENANT" != "." && "$TENANT" != ".." ]] || { echo "invalid tenant" >&2; exit 64; }
+[[ "$WORKSPACE" != "." && "$WORKSPACE" != ".." ]] || { echo "invalid workspace" >&2; exit 64; }
 command -v "$ENGINE" >/dev/null || { echo "container engine unavailable: $ENGINE" >&2; exit 69; }
 
 mkdir -p "$WORKSPACE_ROOT"
 ROOT="$(cd "$WORKSPACE_ROOT" && pwd -P)"
 TARGET="$ROOT/$TENANT/$WORKSPACE"
-mkdir -p "$TARGET"
-TARGET="$(cd "$TARGET" && pwd -P)"
 case "$TARGET" in "$ROOT"/*) ;; *) echo "workspace escape denied" >&2; exit 77 ;; esac
+mkdir -p "$TARGET/source" "$TARGET/generated"
+TARGET="$(cd "$TARGET" && pwd -P)"
+case "$TARGET" in "$ROOT"/*) ;; *) echo "workspace symlink escape denied" >&2; exit 77 ;; esac
 
 CMD=("$@")
 if [[ ${#CMD[@]} -eq 0 ]]; then
@@ -35,6 +38,7 @@ exec "$ENGINE" run --rm \
   --cpus "${CONTROL12_CONTAINER_CPUS:-1.0}" \
   --user "${CONTROL12_CONTAINER_UID_GID:-65532:65532}" \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=128m \
-  --mount "type=bind,src=$TARGET,dst=/workspace,rw" \
+  --mount "type=bind,src=$TARGET/source,dst=/workspace/source,ro" \
+  --mount "type=bind,src=$TARGET/generated,dst=/workspace/output,rw" \
   --workdir /workspace \
   "$IMAGE" "${CMD[@]}"

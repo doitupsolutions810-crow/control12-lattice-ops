@@ -22,7 +22,7 @@ run_check() {
   local name="$1"; shift
   local output rc
   set +e
-  output="$($@ 2>&1)"
+  output="$("$@" 2>&1)"
   rc=$?
   set -e
   if [ "$rc" -eq 0 ]; then
@@ -39,17 +39,20 @@ run_check "chat-syntax" bash -lc "cd '$ROOT/chat-fabric' && npm run check"
 run_check "chat-tests" bash -lc "cd '$ROOT/chat-fabric' && npm test"
 run_check "gateway-signature-required" bash -lc "grep -F 'CONTROL12_GATEWAY_SECRET is required when chat fabric binds beyond loopback' '$ROOT/chat-fabric/src/server.mjs' >/dev/null && grep -F 'createHmac(\"sha256\"' '$ROOT/chat-fabric/src/server.mjs' >/dev/null && grep -F 'identitySource: \"signed-gateway\"' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
 run_check "research-syntax" bash -lc "cd '$ROOT/research-broker' && npm run check"
+run_check "research-tests" bash -lc "cd '$ROOT/research-broker' && npm test"
 run_check "research-dns-pin" bash -lc "grep -F 'lookup: (_hostname, _options, callback) => callback(null, pinned.address, pinned.family)' '$ROOT/research-broker/src/server.mjs' >/dev/null && grep -F 'servername: url.hostname' '$ROOT/research-broker/src/server.mjs' >/dev/null"
 run_check "research-request-bounded" bash -lc "grep -F 'MAX_REQUEST_BYTES' '$ROOT/research-broker/src/server.mjs' >/dev/null && grep -F 'MAX_BYTES' '$ROOT/research-broker/src/server.mjs' >/dev/null"
+run_check "research-auth-required" bash -lc "grep -F 'CONTROL12_RESEARCH_TOKEN_FILE is required when research broker binds beyond loopback' '$ROOT/research-broker/src/server.mjs' >/dev/null && grep -F 'timingSafeEqual' '$ROOT/research-broker/src/server.mjs' >/dev/null"
 run_check "artifact-shell-syntax" bash -lc "bash -n '$ROOT/artifact-runtime/run-workspace-container.sh'"
 run_check "artifact-network-default-deny" bash -lc "grep -F -- '--network none' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-capabilities-dropped" bash -lc "grep -F -- '--cap-drop ALL' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-readonly-root" bash -lc "grep -F -- '--read-only' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-nonroot" bash -lc "grep -Eq -- '--user[ =]' '$ROOT/artifact-runtime/run-workspace-container.sh'"
-run_check "artifact-workspace-only-mount" bash -lc "grep -F -- 'dst=/workspace,rw' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null && grep -F -- 'src=\$TARGET' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
+run_check "artifact-source-readonly" bash -lc "grep -F -- 'src=\$TARGET/source,dst=/workspace/source,ro' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
+run_check "artifact-output-confined" bash -lc "grep -F -- 'src=\$TARGET/generated,dst=/workspace/output,rw' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'productionAuthority: false' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
 run_check "reconciler-shell-syntax" bash -lc "bash -n '$ROOT/scripts/control12-reconciler.sh'"
-run_check "reconciler-validates-before-promote" bash -lc "grep -F 'bash \"$VALIDATOR\"' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'promotion denied' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'CONTROL12_VALIDATED_SHA' '$ROOT/scripts/control12-reconciler.sh' >/dev/null"
+run_check "reconciler-validates-before-promote" bash -lc "grep -F 'if ! bash ' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'promotion denied' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'CONTROL12_VALIDATED_SHA' '$ROOT/scripts/control12-reconciler.sh' >/dev/null"
 run_check "copilot-adapter-shell-syntax" bash -lc "bash -n '$ROOT/scripts/control12-copilot-workspace.sh'"
 run_check "copilot-adapter-no-yolo" bash -lc "! grep -Eq -- '--allow-all|--allow-all-paths|--allow-all-urls|--yolo' '$ROOT/scripts/control12-copilot-workspace.sh'"
 run_check "copilot-adapter-denies-infra" bash -lc "grep -F -- \"--deny-tool='shell(kubectl:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null && grep -F -- \"--deny-tool='shell(terraform:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null && grep -F -- \"--deny-tool='shell(aws:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null"
@@ -74,14 +77,15 @@ criteria = {
     "workspace_confinement_holds": by_name.get("chat-tests", False),
     "identity_boundary_holds": by_name.get("gateway-signature-required", False),
     "research_broker_bounded": all(by_name.get(k, False) for k in (
-        "research-syntax", "research-dns-pin", "research-request-bounded"
+        "research-syntax", "research-tests", "research-dns-pin", "research-request-bounded", "research-auth-required"
     )),
     "artifact_runtime_default_deny": all(by_name.get(k, False) for k in (
         "artifact-network-default-deny",
         "artifact-capabilities-dropped",
         "artifact-readonly-root",
         "artifact-nonroot",
-        "artifact-workspace-only-mount",
+        "artifact-source-readonly",
+        "artifact-output-confined",
     )),
     "chat_has_no_direct_production_authority": by_name.get("production-authority-denied", False),
     "pull_reconciler_is_validation_gated": all(by_name.get(k, False) for k in (

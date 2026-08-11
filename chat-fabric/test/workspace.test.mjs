@@ -25,6 +25,43 @@ test("workspace writes are revisioned, chained, and readable", async () => {
 
 test("path traversal is denied", async () => {
   await assert.rejects(() => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "../../escape", content: "no" }), /escape denied/);
+  await assert.rejects(() => workspace.writeWorkspaceFile({ tenant: "..", workspaceId: "w1", relativePath: "source/no", content: "no" }), /invalid tenant/);
+  await assert.rejects(() => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "..", relativePath: "source/no", content: "no" }), /invalid workspaceId/);
+  await assert.rejects(() => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: "source\\..\\escape", content: "no" }), /escape denied/);
+});
+
+test("workspace control records are server-owned", async () => {
+  for (const internalPath of [
+    "workspace.manifest.json",
+    "execution/revisions.jsonl",
+    "memory/workspace.jsonl",
+    "attestations/forged.json",
+    "artifacts/unadmitted.tar"
+  ]) {
+    await assert.rejects(
+      () => workspace.writeWorkspaceFile({ tenant: "t1", workspaceId: "w1", relativePath: internalPath, content: "forged" }),
+      /internal path write denied/
+    );
+  }
+});
+
+test("concurrent writes produce a linear hash-linked revision chain", async () => {
+  const writes = Array.from({ length: 12 }, (_, index) => workspace.writeWorkspaceFile({
+    tenant: "t1",
+    workspaceId: "concurrent",
+    relativePath: `generated/${index}.txt`,
+    content: String(index),
+    actor: "concurrency-test"
+  }));
+  await Promise.all(writes);
+  const status = await workspace.workspaceStatus("t1", "concurrent");
+  assert.equal(status.revisions, 12);
+  const revisionFile = path.join(root, "t1", "concurrent", "execution", "revisions.jsonl");
+  const records = (await fs.readFile(revisionFile, "utf8")).trim().split("\n").map(JSON.parse);
+  for (let index = 1; index < records.length; index += 1) {
+    assert.equal(records[index].parent, records[index - 1].id);
+    assert.equal(records[index].parentHash, records[index - 1].recordHash);
+  }
 });
 
 test("symlink traversal out of workspace is denied", async () => {
