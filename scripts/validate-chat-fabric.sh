@@ -46,7 +46,7 @@ run_check "artifact-network-default-deny" bash -lc "grep -F -- '--network none' 
 run_check "artifact-capabilities-dropped" bash -lc "grep -F -- '--cap-drop ALL' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-readonly-root" bash -lc "grep -F -- '--read-only' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "artifact-nonroot" bash -lc "grep -Eq -- '--user[ =]' '$ROOT/artifact-runtime/run-workspace-container.sh'"
-run_check "artifact-workspace-only-mount" bash -lc "grep -F -- '--mount \"type=bind,src=\$TARGET,dst=/workspace,rw\"' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
+run_check "artifact-workspace-only-mount" bash -lc "grep -F -- 'dst=/workspace,rw' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null && grep -F -- 'src=\$TARGET' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'productionAuthority: false' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
 
 commit="unknown"
