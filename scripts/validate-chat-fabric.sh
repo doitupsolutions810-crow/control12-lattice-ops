@@ -48,6 +48,11 @@ run_check "artifact-readonly-root" bash -lc "grep -F -- '--read-only' '$ROOT/art
 run_check "artifact-nonroot" bash -lc "grep -Eq -- '--user[ =]' '$ROOT/artifact-runtime/run-workspace-container.sh'"
 run_check "artifact-workspace-only-mount" bash -lc "grep -F -- 'dst=/workspace,rw' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null && grep -F -- 'src=\$TARGET' '$ROOT/artifact-runtime/run-workspace-container.sh' >/dev/null"
 run_check "production-authority-denied" bash -lc "grep -F 'production.execute' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'HARD_DENY' '$ROOT/chat-fabric/src/policy.mjs' >/dev/null && grep -F 'productionAuthority: false' '$ROOT/chat-fabric/src/server.mjs' >/dev/null"
+run_check "reconciler-shell-syntax" bash -lc "bash -n '$ROOT/scripts/control12-reconciler.sh'"
+run_check "reconciler-validates-before-promote" bash -lc "grep -F 'bash \"$VALIDATOR\"' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'promotion denied' '$ROOT/scripts/control12-reconciler.sh' >/dev/null && grep -F 'CONTROL12_VALIDATED_SHA' '$ROOT/scripts/control12-reconciler.sh' >/dev/null"
+run_check "copilot-adapter-shell-syntax" bash -lc "bash -n '$ROOT/scripts/control12-copilot-workspace.sh'"
+run_check "copilot-adapter-no-yolo" bash -lc "! grep -Eq -- '--allow-all|--allow-all-paths|--allow-all-urls|--yolo' '$ROOT/scripts/control12-copilot-workspace.sh'"
+run_check "copilot-adapter-denies-infra" bash -lc "grep -F -- \"--deny-tool='shell(kubectl:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null && grep -F -- \"--deny-tool='shell(terraform:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null && grep -F -- \"--deny-tool='shell(aws:*)'\" '$ROOT/scripts/control12-copilot-workspace.sh' >/dev/null"
 
 commit="unknown"
 if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -79,6 +84,12 @@ criteria = {
         "artifact-workspace-only-mount",
     )),
     "chat_has_no_direct_production_authority": by_name.get("production-authority-denied", False),
+    "pull_reconciler_is_validation_gated": all(by_name.get(k, False) for k in (
+        "reconciler-shell-syntax", "reconciler-validates-before-promote"
+    )),
+    "copilot_cli_is_workspace_bounded": all(by_name.get(k, False) for k in (
+        "copilot-adapter-shell-syntax", "copilot-adapter-no-yolo", "copilot-adapter-denies-infra"
+    )),
 }
 data = {
     "schema": "control12.chat-fabric.validation/v1",
