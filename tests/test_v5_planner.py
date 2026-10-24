@@ -70,3 +70,24 @@ def test_production_plan_requires_signed_artifact_and_attestation():
         intent["constraints"][field] = False
         with pytest.raises(ValueError):
             planner.build_execution_plan(intent)
+
+
+def test_production_plan_rejects_omitted_evidence_requirements():
+    planner = load_planner()
+    for field in ("require_signed_artifact", "require_attestation"):
+        intent = {
+            "schema": "control12.intent/v5",
+            "intent": "deployment.promote",
+            "target": {
+                "environment": "production",
+                "region": "eu-central",
+                "version": "v5.0.0",
+            },
+            "constraints": {
+                "require_signed_artifact": True,
+                "require_attestation": True,
+            },
+        }
+        del intent["constraints"][field]
+        with pytest.raises(ValueError):
+            planner.build_execution_plan(intent)
