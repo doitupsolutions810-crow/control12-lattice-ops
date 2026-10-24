@@ -27,6 +27,10 @@ INTENT -> PLAN -> POLICY -> BUILD -> VERIFY -> ADMIT -> EXECUTE -> OBSERVE -> AT
 
 No production-changing action is valid unless it has a causal chain back to an authorized intent and an allow decision from the policy engine.
 
+## Production evidence requirements
+
+Production intents must require both `require_signed_artifact: true` and `require_attestation: true`. The JSON Schema expresses this condition, and the deterministic planner independently rejects production plans that set either requirement to false or omit it. Schema validation is not a substitute for policy admission; both remain required.
+
 ## Release Evidence Chain
 
 SOURCE -> COMMIT SHA -> BUILD PROVENANCE -> OCI DIGEST -> SBOM -> SIGNATURE -> ADMISSION RECORD -> ROLLOUT RECORD -> HEALTH EVIDENCE -> ATTESTATION
