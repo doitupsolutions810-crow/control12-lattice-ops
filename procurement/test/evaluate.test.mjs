@@ -42,6 +42,7 @@ const evidenceSchema = {
     gates: {
       type: "object",
       required: [...gateIds],
+      additionalProperties: false,
       properties: Object.fromEntries(gateIds.map(id => [id, { const: "READY" }]))
     }
   }
@@ -272,4 +273,17 @@ test("evidence fetch rejects cross-origin final response URLs", async () => {
     }),
     /escaped its requested HTTPS URL/
   );
+});
+
+test("object gate schema cannot permit additional gate IDs", () => {
+  const openSchema = structuredClone(evidenceSchema);
+  openSchema.properties.gates.additionalProperties = true;
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: status,
+    evidenceSchema: openSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "schema.properties.gates"));
 });
