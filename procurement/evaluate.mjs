@@ -147,6 +147,7 @@ function verifyTrust(statusDocument, schemaDocument) {
       const gateProperties = gateSchema.properties;
       const gateRequired = Array.isArray(gateSchema.required) ? gateSchema.required : [];
       const exactObject = gateSchema.type === "object" &&
+        gateSchema.additionalProperties === false &&
         gateProperties && Object.keys(gateProperties).length === EXPECTED_TRUST.mandatoryGates &&
         gateRequired.length === EXPECTED_GATE_IDS.length &&
         EXPECTED_GATE_IDS.every(id => gateRequired.includes(id) &&
