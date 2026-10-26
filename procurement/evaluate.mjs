@@ -224,11 +224,30 @@ export function evaluateProcurement({ operations, success, evidenceStatus, evide
   };
 }
 
-async function fetchDocument(url) {
-  const response = await fetch(url, {
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(20000)
+export async function fetchDocument(url, {
+  fetchImpl = globalThis.fetch,
+  timeoutMs = 20000
+} = {}) {
+  const requestedUrl = new URL(url);
+  if (requestedUrl.protocol !== "https:") {
+    throw new TypeError("Control12 public evidence endpoints must use HTTPS.");
+  }
+  const response = await fetchImpl(url, {
+    method: "GET",
+    redirect: "error",
+    cache: "no-store",
+    headers: { accept: "application/json", "cache-control": "no-cache" },
+    signal: AbortSignal.timeout(timeoutMs)
   });
+  const finalUrl = response.url ? new URL(response.url) : requestedUrl;
+  if (
+    finalUrl.protocol !== "https:" ||
+    finalUrl.origin !== requestedUrl.origin ||
+    finalUrl.pathname !== requestedUrl.pathname ||
+    finalUrl.search !== requestedUrl.search
+  ) {
+    throw new Error("Control12 evidence response escaped its requested HTTPS URL.");
+  }
   if (!response.ok) return null;
   return response.json();
 }
