@@ -26,31 +26,111 @@ const success = {
   results: [{ id: "G0", status: "PASS" }]
 };
 
-test("allows procurement while production remains disabled", () => {
+const gateIds = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
+const status = {
+  ...trust,
+  overall: "READY",
+  gates: Object.fromEntries(gateIds.map(id => [id, "READY"]))
+};
+const evidenceSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  type: "object",
+  required: [...Object.keys(trust), "overall", "gates"],
+  properties: {
+    ...Object.fromEntries(Object.entries(trust).map(([key, value]) => [key, { const: value }])),
+    overall: { enum: ["READY", "HOLD"] },
+    gates: {
+      type: "object",
+      properties: Object.fromEntries(gateIds.map(id => [id, { const: "READY" }]))
+    }
+  }
+};
+
+test("allows procurement while production remains disabled with paired valid trust documents", () => {
   const result = evaluateProcurement({
     operations,
     success,
-    evidenceStatus: trust,
-    evidenceSchema: trust
+    evidenceStatus: status,
+    evidenceSchema
   });
   assert.equal(result.procurementDecision, "READY_FOR_PROCUREMENT");
   assert.equal(result.productionDecision, "NO_GO");
+  assert.equal(result.trust.verified, true);
 });
 
-test("holds procurement when evidence trust cannot be verified", () => {
-  const result = evaluateProcurement({ operations, success, evidenceStatus: null, evidenceSchema: null });
+test("holds procurement when either evidence endpoint is unavailable", () => {
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: null,
+    evidenceSchema: null
+  });
   assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
   assert.equal(result.productionDecision, "NO_GO");
 });
 
-test("does not accept weakened evidence policy", () => {
-  const weakened = { ...trust, syntheticEvidenceRejected: false };
+test("does not accept weakened live evidence policy", () => {
+  const weakened = { ...status, syntheticEvidenceRejected: false };
   const result = evaluateProcurement({
     operations,
     success,
     evidenceStatus: weakened,
-    evidenceSchema: weakened
+    evidenceSchema
   });
   assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
-  assert.ok(result.trust.mismatches.some(item => item.key === "syntheticEvidenceRejected"));
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.syntheticEvidenceRejected"));
+});
+
+test("a schema claim cannot fill a missing status claim", () => {
+  const missingStatusClaim = { ...status };
+  delete missingStatusClaim.syntheticEvidenceRejected;
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: missingStatusClaim,
+    evidenceSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.syntheticEvidenceRejected"));
+});
+
+test("a live status claim cannot compensate for a weakened schema", () => {
+  const weakenedSchema = {
+    ...evidenceSchema,
+    properties: {
+      ...evidenceSchema.properties,
+      syntheticEvidenceRejected: { type: "boolean" }
+    }
+  };
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: status,
+    evidenceSchema: weakenedSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "schema.properties.syntheticEvidenceRejected"));
+});
+
+test("procurement holds if any live gate is not READY", () => {
+  const oneGateHeld = { ...status, gates: { ...status.gates, G6: "HOLD" } };
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: oneGateHeld,
+    evidenceSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.gates"));
+});
+
+test("production remains NO_GO even when trust and procurement checks pass", () => {
+  const result = evaluateProcurement({
+    operations,
+    success: { ...success, decision: "GO" },
+    evidenceStatus: status,
+    evidenceSchema
+  });
+  assert.equal(result.procurementDecision, "READY_FOR_PROCUREMENT");
+  assert.equal(result.productionDecision, "NO_GO");
 });
