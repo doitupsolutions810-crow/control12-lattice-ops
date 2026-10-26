@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluateProcurement } from "../evaluate.mjs";
+import { evaluateProcurement, fetchDocument } from "../evaluate.mjs";
 
 const trust = {
   version: "5.3.1",
@@ -232,4 +232,44 @@ test("array schema missing a gate-specific occurrence constraint holds procureme
   });
   assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
   assert.ok(result.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+});
+
+
+test("evidence fetches refuse redirects and request uncached JSON", async () => {
+  let observed = null;
+  const value = await fetchDocument("https://example.invalid/api/status", {
+    fetchImpl: async (url, options) => {
+      observed = { url: String(url), options };
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
+  });
+  assert.deepEqual(value, { ok: true });
+  assert.equal(observed.options.redirect, "error");
+  assert.equal(observed.options.cache, "no-store");
+  assert.equal(observed.options.headers["cache-control"], "no-cache");
+});
+
+test("evidence fetch rejects non-HTTPS endpoints before I/O", async () => {
+  let calls = 0;
+  await assert.rejects(
+    fetchDocument("http://example.invalid/api/status", {
+      fetchImpl: async () => { calls++; return new Response("{}", { status: 200 }); }
+    }),
+    /must use HTTPS/
+  );
+  assert.equal(calls, 0);
+});
+
+test("evidence fetch rejects cross-origin final response URLs", async () => {
+  await assert.rejects(
+    fetchDocument("https://example.invalid/api/status", {
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        url: "https://attacker.invalid/api/status",
+        json: async () => ({ ok: true })
+      })
+    }),
+    /escaped its requested HTTPS URL/
+  );
 });
