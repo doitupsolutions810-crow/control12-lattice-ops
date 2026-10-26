@@ -18,6 +18,7 @@ const EXPECTED_TRUST = Object.freeze({
 });
 
 const STATUS_SCHEMA_URI = "https://json-schema.org/draft/2020-12/schema";
+const EXPECTED_GATE_IDS = Object.freeze(["G0", "G1", "G2", "G3", "G4", "G5", "G6"]);
 
 function propertyAllows(property, expected) {
   if (!property || typeof property !== "object") return false;
@@ -30,25 +31,39 @@ function propertyAllows(property, expected) {
 function readGateStatuses(statusDocument) {
   const field = ["gates", "gateStatuses", "results"]
     .find(key => Object.prototype.hasOwnProperty.call(statusDocument, key));
-  if (!field) return { field: null, statuses: null };
+  if (!field) return { field: null, entries: null, shape: null };
   const value = statusDocument[field];
   if (Array.isArray(value)) {
     return {
       field,
-      statuses: value.map(item =>
-        typeof item === "string" ? item : item && typeof item === "object" ? item.status : undefined
-      )
+      shape: "array",
+      entries: value.map(item => ({
+        id: item && typeof item === "object" ? item.id : undefined,
+        status: item && typeof item === "object" ? item.status : undefined
+      }))
     };
   }
   if (value && typeof value === "object") {
     return {
       field,
-      statuses: Object.values(value).map(item =>
-        typeof item === "string" ? item : item && typeof item === "object" ? item.status : undefined
-      )
+      shape: "object",
+      entries: Object.entries(value).map(([id, item]) => ({
+        id,
+        status: typeof item === "string" ? item : item && typeof item === "object" ? item.status : undefined
+      }))
     };
   }
-  return { field, statuses: null };
+  return { field, entries: null, shape: null };
+}
+
+function validGateEntries(gateData) {
+  if (!Array.isArray(gateData.entries) ||
+      gateData.entries.length !== EXPECTED_TRUST.mandatoryGates) return false;
+  const ids = gateData.entries.map(entry => entry.id);
+  return ids.every(id => EXPECTED_GATE_IDS.includes(id)) &&
+    new Set(ids).size === EXPECTED_GATE_IDS.length &&
+    EXPECTED_GATE_IDS.every(id => ids.includes(id)) &&
+    gateData.entries.every(entry => entry.status === "READY");
 }
 
 /**
@@ -75,10 +90,8 @@ function verifyTrust(statusDocument, schemaDocument) {
   if (statusDocument.overall !== "READY") add("status.overall", "READY", statusDocument.overall);
 
   const gateData = readGateStatuses(statusDocument);
-  if (!gateData.field || !Array.isArray(gateData.statuses) ||
-      gateData.statuses.length !== EXPECTED_TRUST.mandatoryGates ||
-      gateData.statuses.some(status => status !== "READY")) {
-    add("status.gates", `exactly ${EXPECTED_TRUST.mandatoryGates} READY gates`, gateData.statuses);
+  if (!gateData.field || !validGateEntries(gateData)) {
+    add("status.gates", `exactly the G0-G6 gate set with all statuses READY`, gateData.entries);
   }
 
   if (schemaDocument.$schema !== STATUS_SCHEMA_URI) {
@@ -101,20 +114,33 @@ function verifyTrust(statusDocument, schemaDocument) {
     if (!gateSchema) {
       add("schema.properties.gates", "matching gate field", gateData.field);
     } else {
-      const itemStatusAllowed = propertyAllows(gateSchema.items, "READY") ||
-        propertyAllows(gateSchema.items?.properties?.status, "READY");
+      const itemSchema = gateSchema.items;
+      const itemProperties = itemSchema?.properties;
+      const itemRequired = Array.isArray(itemSchema?.required) ? itemSchema.required : [];
+      const itemIdEnum = itemProperties?.id?.enum;
+      const exactIdEnum = Array.isArray(itemIdEnum) &&
+        itemIdEnum.length === EXPECTED_GATE_IDS.length &&
+        EXPECTED_GATE_IDS.every(id => itemIdEnum.includes(id));
       const exactArray = gateSchema.type === "array" &&
         gateSchema.minItems === EXPECTED_TRUST.mandatoryGates &&
         gateSchema.maxItems === EXPECTED_TRUST.mandatoryGates &&
-        itemStatusAllowed;
+        gateSchema.uniqueItems === true &&
+        itemSchema?.type === "object" &&
+        itemRequired.includes("id") && itemRequired.includes("status") &&
+        exactIdEnum &&
+        propertyAllows(itemProperties?.status, "READY");
       const gateProperties = gateSchema.properties;
-      const gateIds = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
+      const gateRequired = Array.isArray(gateSchema.required) ? gateSchema.required : [];
       const exactObject = gateSchema.type === "object" &&
         gateProperties && Object.keys(gateProperties).length === EXPECTED_TRUST.mandatoryGates &&
-        gateIds.every(id =>
-          gateProperties[id] &&
-          propertyAllows(gateProperties[id].properties?.status || gateProperties[id], "READY")
-        );
+        gateRequired.length === EXPECTED_GATE_IDS.length &&
+        EXPECTED_GATE_IDS.every(id => gateRequired.includes(id) &&
+          gateProperties[id] && (
+            propertyAllows(gateProperties[id], "READY") ||
+            (propertyAllows(gateProperties[id].properties?.status, "READY") &&
+             Array.isArray(gateProperties[id].required) &&
+             gateProperties[id].required.includes("status"))
+          ));
       if (!exactArray && !exactObject) {
         add("schema.properties.gates", "exactly seven gates constrained to READY", gateSchema);
       }
