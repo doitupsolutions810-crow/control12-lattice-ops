@@ -41,6 +41,7 @@ const evidenceSchema = {
     overall: { enum: ["READY", "HOLD"] },
     gates: {
       type: "object",
+      required: [...gateIds],
       properties: Object.fromEntries(gateIds.map(id => [id, { const: "READY" }]))
     }
   }
@@ -133,4 +134,32 @@ test("production remains NO_GO even when trust and procurement checks pass", () 
   });
   assert.equal(result.procurementDecision, "READY_FOR_PROCUREMENT");
   assert.equal(result.productionDecision, "NO_GO");
+});
+
+test("schema must require every gate key, not merely describe each property", () => {
+  const incompleteSchema = structuredClone(evidenceSchema);
+  incompleteSchema.properties.gates.required = gateIds.slice(0, 6);
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: status,
+    evidenceSchema: incompleteSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+});
+
+test("duplicate or unknown live gate IDs block procurement", () => {
+  const duplicated = {
+    ...status,
+    gates: { G0: "READY", G1: "READY", G2: "READY", G3: "READY", G4: "READY", G5: "READY", G7: "READY" }
+  };
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: duplicated,
+    evidenceSchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.gates"));
 });
