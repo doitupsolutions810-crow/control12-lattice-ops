@@ -19,6 +19,7 @@ const EXPECTED_TRUST = Object.freeze({
 
 const STATUS_SCHEMA_URI = "https://json-schema.org/draft/2020-12/schema";
 const EXPECTED_GATE_IDS = Object.freeze(["G0", "G1", "G2", "G3", "G4", "G5", "G6"]);
+const EXPECTED_GATE_IDS = Object.freeze(["G0", "G1", "G2", "G3", "G4", "G5", "G6"]);
 
 function propertyAllows(property, expected) {
   if (!property || typeof property !== "object") return false;
@@ -64,6 +65,19 @@ function validGateEntries(gateData) {
     new Set(ids).size === EXPECTED_GATE_IDS.length &&
     EXPECTED_GATE_IDS.every(id => ids.includes(id)) &&
     gateData.entries.every(entry => entry.status === "READY");
+}
+
+function schemaRequiresExactGateCoverage(gateSchema) {
+  const allOf = gateSchema?.allOf;
+  if (!Array.isArray(allOf) || allOf.length !== EXPECTED_GATE_IDS.length) return false;
+  return EXPECTED_GATE_IDS.every(gateId => allOf.some(rule => {
+    const containsSchema = rule?.contains;
+    const required = Array.isArray(containsSchema?.required) ? containsSchema.required : [];
+    return containsSchema?.properties?.id?.const === gateId &&
+      required.includes("id") &&
+      rule.minContains === 1 &&
+      rule.maxContains === 1;
+  }));
 }
 
 /**
@@ -128,7 +142,8 @@ function verifyTrust(statusDocument, schemaDocument) {
         itemSchema?.type === "object" &&
         itemRequired.includes("id") && itemRequired.includes("status") &&
         exactIdEnum &&
-        propertyAllows(itemProperties?.status, "READY");
+        propertyAllows(itemProperties?.status, "READY") &&
+        schemaRequiresExactGateCoverage(gateSchema);
       const gateProperties = gateSchema.properties;
       const gateRequired = Array.isArray(gateSchema.required) ? gateSchema.required : [];
       const exactObject = gateSchema.type === "object" &&
