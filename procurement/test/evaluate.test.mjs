@@ -163,3 +163,73 @@ test("duplicate or unknown live gate IDs block procurement", () => {
   assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
   assert.ok(result.trust.mismatches.some(item => item.key === "status.gates"));
 });
+
+test("array schema requires one occurrence of every G0-G6 gate ID", () => {
+  const arrayStatus = {
+    ...status,
+    gates: gateIds.map(id => ({ id, status: "READY" }))
+  };
+  const arraySchema = structuredClone(evidenceSchema);
+  arraySchema.properties.gates = {
+    type: "array",
+    minItems: 7,
+    maxItems: 7,
+    uniqueItems: true,
+    allOf: gateIds.map(id => ({
+      contains: { type: "object", required: ["id"], properties: { id: { const: id } } },
+      minContains: 1,
+      maxContains: 1
+    })),
+    items: {
+      type: "object",
+      required: ["id", "status"],
+      properties: {
+        id: { enum: [...gateIds] },
+        status: { const: "READY" }
+      }
+    }
+  };
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: arrayStatus,
+    evidenceSchema: arraySchema
+  });
+  assert.equal(result.procurementDecision, "READY_FOR_PROCUREMENT");
+  assert.equal(result.trust.verified, true);
+});
+
+test("array schema missing a gate-specific occurrence constraint holds procurement", () => {
+  const arrayStatus = {
+    ...status,
+    gates: gateIds.map(id => ({ id, status: "READY" }))
+  };
+  const arraySchema = structuredClone(evidenceSchema);
+  arraySchema.properties.gates = {
+    type: "array",
+    minItems: 7,
+    maxItems: 7,
+    uniqueItems: true,
+    allOf: gateIds.slice(0, 6).map(id => ({
+      contains: { type: "object", required: ["id"], properties: { id: { const: id } } },
+      minContains: 1,
+      maxContains: 1
+    })),
+    items: {
+      type: "object",
+      required: ["id", "status"],
+      properties: {
+        id: { enum: [...gateIds] },
+        status: { const: "READY" }
+      }
+    }
+  };
+  const result = evaluateProcurement({
+    operations,
+    success,
+    evidenceStatus: arrayStatus,
+    evidenceSchema: arraySchema
+  });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+});
