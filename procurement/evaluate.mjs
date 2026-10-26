@@ -17,24 +17,121 @@ const EXPECTED_TRUST = Object.freeze({
   requiredEnvironment: "production"
 });
 
-function findValue(value, key, seen = new Set()) {
-  if (!value || typeof value !== "object" || seen.has(value)) return undefined;
-  seen.add(value);
-  if (Object.prototype.hasOwnProperty.call(value, key)) return value[key];
-  for (const child of Object.values(value)) {
-    const found = findValue(child, key, seen);
-    if (found !== undefined) return found;
+const STATUS_SCHEMA_URI = "https://json-schema.org/draft/2020-12/schema";
+
+function propertyAllows(property, expected) {
+  if (!property || typeof property !== "object") return false;
+  if (Object.prototype.hasOwnProperty.call(property, "const")) {
+    return property.const === expected;
   }
-  return undefined;
+  return Array.isArray(property.enum) && property.enum.includes(expected);
 }
 
-function verifyTrust(statusDocument, schemaDocument) {
-  const merged = { statusDocument, schemaDocument };
-  const mismatches = [];
-  for (const [key, expected] of Object.entries(EXPECTED_TRUST)) {
-    const actual = findValue(merged, key);
-    if (actual !== expected) mismatches.push({ key, expected, actual });
+function readGateStatuses(statusDocument) {
+  const field = ["gates", "gateStatuses", "results"]
+    .find(key => Object.prototype.hasOwnProperty.call(statusDocument, key));
+  if (!field) return { field: null, statuses: null };
+  const value = statusDocument[field];
+  if (Array.isArray(value)) {
+    return {
+      field,
+      statuses: value.map(item =>
+        typeof item === "string" ? item : item && typeof item === "object" ? item.status : undefined
+      )
+    };
   }
+  if (value && typeof value === "object") {
+    return {
+      field,
+      statuses: Object.values(value).map(item =>
+        typeof item === "string" ? item : item && typeof item === "object" ? item.status : undefined
+      )
+    };
+  }
+  return { field, statuses: null };
+}
+
+/**
+ * The status endpoint and its schema must independently satisfy the trust
+ * contract. Never merge them before verification; a schema declaration cannot
+ * substitute for a missing live status claim, and vice versa.
+ */
+function verifyTrust(statusDocument, schemaDocument) {
+  const mismatches = [];
+  const add = (key, expected, actual) => mismatches.push({ key, expected, actual });
+
+  if (!statusDocument || typeof statusDocument !== "object" || Array.isArray(statusDocument)) {
+    add("statusDocument", "object", statusDocument);
+    return { verified: false, mismatches };
+  }
+  if (!schemaDocument || typeof schemaDocument !== "object" || Array.isArray(schemaDocument)) {
+    add("schemaDocument", "JSON Schema object", schemaDocument);
+    return { verified: false, mismatches };
+  }
+
+  for (const [key, expected] of Object.entries(EXPECTED_TRUST)) {
+    if (statusDocument[key] !== expected) add(`status.${key}`, expected, statusDocument[key]);
+  }
+  if (statusDocument.overall !== "READY") add("status.overall", "READY", statusDocument.overall);
+
+  const gateData = readGateStatuses(statusDocument);
+  if (!gateData.field || !Array.isArray(gateData.statuses) ||
+      gateData.statuses.length !== EXPECTED_TRUST.mandatoryGates ||
+      gateData.statuses.some(status => status !== "READY")) {
+    add("status.gates", `exactly ${EXPECTED_TRUST.mandatoryGates} READY gates`, gateData.statuses);
+  }
+
+  if (schemaDocument.$schema !== STATUS_SCHEMA_URI) {
+    add("schema.$schema", STATUS_SCHEMA_URI, schemaDocument.$schema);
+  }
+  if (schemaDocument.type !== "object") add("schema.type", "object", schemaDocument.type);
+  const properties = schemaDocument.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    add("schema.properties", "object", properties);
+  } else {
+    for (const [key, expected] of Object.entries(EXPECTED_TRUST)) {
+      if (!propertyAllows(properties[key], expected)) {
+        add(`schema.properties.${key}`, expected, properties[key]);
+      }
+    }
+    if (!propertyAllows(properties.overall, "READY")) {
+      add("schema.properties.overall", "must allow READY", properties.overall);
+    }
+    const gateSchema = gateData.field ? properties[gateData.field] : null;
+    if (!gateSchema) {
+      add("schema.properties.gates", "matching gate field", gateData.field);
+    } else {
+      const itemStatusAllowed = propertyAllows(gateSchema.items, "READY") ||
+        propertyAllows(gateSchema.items?.properties?.status, "READY");
+      const exactArray = gateSchema.type === "array" &&
+        gateSchema.minItems === EXPECTED_TRUST.mandatoryGates &&
+        gateSchema.maxItems === EXPECTED_TRUST.mandatoryGates &&
+        itemStatusAllowed;
+      const gateProperties = gateSchema.properties;
+      const gateIds = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
+      const exactObject = gateSchema.type === "object" &&
+        gateProperties && Object.keys(gateProperties).length === EXPECTED_TRUST.mandatoryGates &&
+        gateIds.every(id =>
+          gateProperties[id] &&
+          propertyAllows(gateProperties[id].properties?.status || gateProperties[id], "READY")
+        );
+      if (!exactArray && !exactObject) {
+        add("schema.properties.gates", "exactly seven gates constrained to READY", gateSchema);
+      }
+    }
+  }
+
+  const required = schemaDocument.required;
+  if (!Array.isArray(required)) {
+    add("schema.required", "array", required);
+  } else {
+    const expectedRequired = [...Object.keys(EXPECTED_TRUST), "overall"];
+    if (gateData.field) expectedRequired.push(gateData.field);
+    for (const key of expectedRequired) {
+      if (!required.includes(key)) add(`schema.required.${key}`, "required", required);
+    }
+  }
+
   return { verified: mismatches.length === 0, mismatches };
 }
 
