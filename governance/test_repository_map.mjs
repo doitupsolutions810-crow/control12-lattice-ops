@@ -49,7 +49,7 @@ test("private full-account snapshot is structurally valid and makes no runtime c
   assert.equal(baseline.repositories.length, baseline.expectedRepositoryCount);
   assert.equal(baseline.repositories.filter(repo => repo.visibility === "public").length, 14);
   assert.equal(baseline.repositories.filter(repo => repo.visibility === "private").length, 21);
-  assert.equal(baseline.interfaces.length, 9);
+  assert.equal(baseline.interfaces.length, 10);
   assert.ok(baseline.repositories.every(repo => repo.integrationStatus === "not-end-to-end-verified"));
   assert.ok(baseline.interfaces.every(edge => edge.verificationStatus === "proposed-not-verified"));
   assert.deepEqual(validateRepositoryMap(baseline), []);
@@ -170,6 +170,19 @@ test("run and evidence URLs must belong to the exact registered Actions run", ()
     evidenceUrl: `https://github.com/${baseline.owner}/great-scale/actions/runs/999999/artifacts/789`
   });
   assert.ok(validateRepositoryMap(replay).some(message => message.includes("evidenceUrl must be a durable URL within the exact test run")));
+});
+
+test("signed E0-E6 source-console edge stays separate from G0-G6 production acceptance", () => {
+  const edge = baseline.interfaces.find(item =>
+    item.from === "control12-lattice-ops" && item.to === "living-intermediate-control-plane"
+  );
+  assert.ok(edge, "private inventory records the signed source-console edge");
+  assert.equal(edge.verificationStatus, "proposed-not-verified");
+  assert.match(edge.contract, /E0-E6/);
+  assert.match(edge.contract, /not G0-G6 production acceptance/i);
+  assert.ok(edge.requiredEvidence.includes("ed25519-signature-verified-against-independent-pinned-key"));
+  assert.ok(edge.requiredEvidence.includes("exact-head-end-to-end-test-run"));
+  assert.ok(edge.requiredEvidence.includes("explicit-e0-e6-versus-g0-g6-separation"));
 });
 
 test("operation evidence reference remains pinned to the proposed v1 contract", () => {
