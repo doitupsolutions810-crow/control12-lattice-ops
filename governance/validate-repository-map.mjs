@@ -118,11 +118,12 @@ export function validateRepositoryMap(map) {
     numericalCertificationRequired: "A separate numericalCertification object is mandatory; model errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
     numericalCertificationEvidenceVerified: "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
     numericalCertificationClaimNotProof: "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion.",
+    numericalCertificationTrustAnchorSeparate: "certificateKeyId and certificateSignature must verify under a separately configured, independently pinned numerical-certificate public key; do not treat the outer G6 receipt signature as proof of the certificate.",
   };
   if (!g6Contract ||
       g6Contract.repository !== "great-scale" ||
       g6Contract.path !== "contracts/g6-residual-measurement/v1.schema.json" ||
-      g6Contract.schemaBlobSha !== "89ed8276ea7ba4d65fa9b416a960ad5acba296d2" ||
+      g6Contract.schemaBlobSha !== "b4d59db4cda7a53d82bdfc9333ad504a864f9cf5" ||
       g6Contract.version !== "v1" ||
       g6Contract.status !== "schema-only-not-producer" ||
       !g6Contract.mapping ||
