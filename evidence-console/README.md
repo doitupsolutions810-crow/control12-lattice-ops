@@ -38,6 +38,8 @@ Timestamps are issued on each request, expire after 60 seconds, and are rejected
 
 The producer and consumers require exact status fields and exact schema property/required lists; unknown root keys are not accepted. Contract trust values must be fixed with `const` or a singleton enum, never an enum that also admits weaker values. The canonical status field is `gates`; `results` and `gateStatuses` are not aliases. Each of the seven E0–E6 entries contains exactly `id` and `status`, both required, and the item schema sets `additionalProperties: false`. The schema itself is also closed, and the key ID/public key are verified independently by the consumer. These strict structure rules prevent a valid signature over an object from quietly admitting unreviewed fields.
 
+The schema vocabulary is deliberately closed: the root schema has only `$schema`, `type`, `additionalProperties`, `required`, and `properties`; the `gates` array schema has only `type`, `minItems`, `maxItems`, `uniqueItems`, `allOf`, and `items`; the item schema has only `type`, `additionalProperties`, `required`, and `properties`. Each coverage rule and its `contains` schema has its own exact key set. Unknown JSON Schema keywords at any of these levels invalidate the contract, even when the standard required fields remain present.
+
 ## Local validation
 
 From this directory:
