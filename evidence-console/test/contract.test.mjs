@@ -118,6 +118,22 @@ test("producer rejects timezone-free and impossible source timestamps", () => {
   assert.ok(verifyEvidenceStatus(impossible, { env: fixtureEnv }).failures.includes("freshness_timestamps_invalid"));
 });
 
+test("rejects extra properties within contract-check entries", () => {
+  const status = buildEvidenceStatus({ env: fixtureEnv });
+  status.gates[0].debug = "not in schema";
+  const result = verifyEvidenceStatus(status, { env: fixtureEnv });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes("status_contract_check_gates_invalid"));
+});
+
+test("schema item properties must be exactly id and status", () => {
+  const schema = buildEvidenceSchema(fixtureEnv);
+  schema.properties.gates.items.properties.debug = { type: "string" };
+  const result = verifyEvidenceSchema(schema, { env: fixtureEnv });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes("schema_contract_check_gate_rules_invalid"));
+});
+
 test("rejects a status mutation that is not re-digested and re-signed", () => {
   const status = buildEvidenceStatus({ env: fixtureEnv });
   status.privacy = "remote-storage";
