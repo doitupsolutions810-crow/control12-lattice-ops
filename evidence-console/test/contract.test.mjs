@@ -79,6 +79,36 @@ test("the producer schema independently enforces every source trust field", () =
   assert.ok(result.failures.includes("schema_signature_rule_invalid"));
 });
 
+test("producer schema rejects widened or extra fields and open gate-item schemas", () => {
+  const schema = buildEvidenceSchema(fixtureEnv);
+
+  const extraProperty = structuredClone(schema);
+  extraProperty.properties.operatorNote = { type: "string" };
+  const extraPropertyResult = verifyEvidenceSchema(extraProperty, { env: fixtureEnv });
+  assert.equal(extraPropertyResult.valid, false);
+  assert.ok(extraPropertyResult.failures.includes("schema_properties_not_exact"));
+
+  const duplicateRequired = structuredClone(schema);
+  duplicateRequired.required.push("sourceSignature");
+  const duplicateRequiredResult = verifyEvidenceSchema(duplicateRequired, { env: fixtureEnv });
+  assert.equal(duplicateRequiredResult.valid, false);
+  assert.ok(duplicateRequiredResult.failures.includes("schema_required_fields_invalid"));
+
+  const openItems = structuredClone(schema);
+  openItems.properties.gates.items.additionalProperties = true;
+  const openItemsResult = verifyEvidenceSchema(openItems, { env: fixtureEnv });
+  assert.equal(openItemsResult.valid, false);
+  assert.ok(openItemsResult.failures.includes("schema_contract_check_gate_rules_invalid"));
+});
+
+test("producer status verifier rejects properties outside the signed contract", () => {
+  const status = buildEvidenceStatus({ env: fixtureEnv });
+  status.operatorNote = "not in the v5.4.0 contract";
+  const result = verifyEvidenceStatus(status, { env: fixtureEnv });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes("status_fields_not_exact"));
+});
+
 test("producer rejects timezone-free and impossible source timestamps", () => {
   const status = buildEvidenceStatus({ env: fixtureEnv });
   status.sourceGeneratedAt = "2026-10-27T00:00:00";
