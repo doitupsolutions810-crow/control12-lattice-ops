@@ -123,7 +123,7 @@ function propertyAllows(property, expected) {
   if (Object.prototype.hasOwnProperty.call(property, "const")) {
     return property.const === expected;
   }
-  return Array.isArray(property.enum) && property.enum.includes(expected);
+  return Array.isArray(property.enum) && property.enum.length === 1 && property.enum[0] === expected;
 }
 
 function readGateStatuses(statusDocument) {
@@ -210,6 +210,7 @@ function verifyTrust(statusDocument, schemaDocument) {
     add("schema.$schema", STATUS_SCHEMA_URI, schemaDocument.$schema);
   }
   if (schemaDocument.type !== "object") add("schema.type", "object", schemaDocument.type);
+  if (schemaDocument.additionalProperties !== false) add("schema.additionalProperties", false, schemaDocument.additionalProperties);
   const properties = schemaDocument.properties;
   if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
     add("schema.properties", "object", properties);
@@ -264,6 +265,7 @@ function verifyTrust(statusDocument, schemaDocument) {
         gateSchema.maxItems === EXPECTED_TRUST.mandatoryGates &&
         gateSchema.uniqueItems === true &&
         itemSchema?.type === "object" &&
+        itemSchema?.additionalProperties === false &&
         itemRequired.includes("id") && itemRequired.includes("status") &&
         exactIdEnum &&
         propertyAllows(itemProperties?.status, "READY") &&
@@ -291,10 +293,23 @@ function verifyTrust(statusDocument, schemaDocument) {
   if (!Array.isArray(required)) {
     add("schema.required", "array", required);
   } else {
-    const expectedRequired = [...Object.keys(EXPECTED_TRUST), ...SOURCE_ATTESTATION_FIELDS, "sourceGeneratedAt", "sourceExpiresAt", "overall"];
-    if (gateData.field) expectedRequired.push(gateData.field);
-    for (const key of expectedRequired) {
-      if (!required.includes(key)) add(`schema.required.${key}`, "required", required);
+    const expectedRequired = [
+      ...Object.keys(EXPECTED_TRUST), ...SOURCE_ATTESTATION_FIELDS,
+      "sourceGeneratedAt", "sourceExpiresAt", "overall", ...(gateData.field ? [gateData.field] : [])
+    ];
+    const expectedSet = new Set(expectedRequired);
+    if (required.length !== expectedSet.size ||
+        new Set(required).size !== required.length ||
+        !required.every(key => expectedSet.has(key))) {
+      add("schema.required", "exact contract field list", required);
+    }
+    if (!properties || Object.keys(properties).length !== expectedSet.size ||
+        !Object.keys(properties).every(key => expectedSet.has(key))) {
+      add("schema.properties", "exact contract field list", properties);
+    }
+    const statusKeys = Object.keys(statusDocument);
+    if (statusKeys.length !== expectedSet.size || !statusKeys.every(key => expectedSet.has(key))) {
+      add("status.fields", "exact contract field list", statusKeys);
     }
   }
 
