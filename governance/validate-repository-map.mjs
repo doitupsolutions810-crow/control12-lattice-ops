@@ -108,15 +108,18 @@ export function validateRepositoryMap(map) {
     measurementSTopologicalToResidualS: "measurement.STopological -> residual.S",
     measuredAtToResidualMeasuredAt: "measuredAt -> residual.measuredAt",
     issuerToResidualSourceId: "issuer -> residual.sourceId",
-    buildIdToResidualBuildId: "buildId must equal residual.buildId and the G0-G6 attestation buildId; it must be a shared composite release ID binding the Great Scale model run/artifact and Control Plane target build. If independent per-repository build IDs are used, v1 is insufficient and requires a versioned sourceBuildId/acceptanceBuildId contract.",
+    measurementBuildIdDistinctFromTargetBuildId: "measurementBuildId identifies the Great Scale measurement build; targetBuildId identifies the Control Plane acceptance build. These are independent identities and must not be assumed equal.",
+    targetBuildIdToResidualBuildId: "targetBuildId must equal final G0-G6 attestation.buildId and becomes residual.buildId.",
+    targetSourceRevisionToAttestationSource: "target.repository/commitSha must equal final G0-G6 attestation.source.repository/commitSha.",
+    targetArtifactDigestToAcceptanceArtifact: "targetArtifact.digest must equal final G0-G6 attestation.artifact.digest.",
     sourceCommitEqualsWorkflowHead: "source.commitSha must equal execution.headSha",
-    artifactBinding: "artifact.digest identifies the Great Scale model artifact and model.inputDigest binds its inputs; verify both independently and never substitute either for the Control Plane acceptance artifact digest.",
+    measurementArtifactBinding: "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
     trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
   };
   if (!g6Contract ||
       g6Contract.repository !== "great-scale" ||
       g6Contract.path !== "contracts/g6-residual-measurement/v1.schema.json" ||
-      g6Contract.schemaBlobSha !== "5322c32362ff42b5e251672d0b5ac9c61ae106a5" ||
+      g6Contract.schemaBlobSha !== "002c4abb141833e1361fa96d36474dece1a77ad1" ||
       g6Contract.version !== "v1" ||
       g6Contract.status !== "schema-only-not-producer" ||
       !g6Contract.mapping ||
