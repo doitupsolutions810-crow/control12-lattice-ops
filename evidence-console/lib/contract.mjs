@@ -196,8 +196,12 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
   if (!gates || gates.type !== "array" || gates.minItems !== 7 || gates.maxItems !== 7 ||
       gates.uniqueItems !== true || !gates.items || gates.items.type !== "object" ||
       gates.items.additionalProperties !== false ||
-      !Array.isArray(gates.items.required) || !gates.items.required.includes("id") ||
-      !gates.items.required.includes("status") ||
+      !Array.isArray(gates.items.required) || gates.items.required.length !== 2 ||
+      new Set(gates.items.required).size !== 2 ||
+      !gates.items.required.includes("id") || !gates.items.required.includes("status") ||
+      !gates.items.properties || Object.keys(gates.items.properties).length !== 2 ||
+      !Object.prototype.hasOwnProperty.call(gates.items.properties, "id") ||
+      !Object.prototype.hasOwnProperty.call(gates.items.properties, "status") ||
       !Array.isArray(gates.items.properties?.id?.enum) ||
       gates.items.properties.id.enum.length !== CHECK_IDS.length ||
       !CHECK_IDS.every(id => gates.items.properties.id.enum.includes(id)) ||
@@ -236,7 +240,10 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
   if (gates.length !== CHECK_IDS.length ||
       new Set(ids).size !== CHECK_IDS.length ||
       !CHECK_IDS.every(id => ids.includes(id)) ||
-      gates.some(gate => gate?.status !== "READY")) {
+      gates.some(gate => !gate || typeof gate !== "object" || Array.isArray(gate) ||
+        Object.keys(gate).length !== 2 ||
+        !Object.prototype.hasOwnProperty.call(gate, "id") ||
+        !Object.prototype.hasOwnProperty.call(gate, "status") || gate.status !== "READY")) {
     failures.push("status_contract_check_gates_invalid");
   }
   const generated = parseSourceTimestamp(status.sourceGeneratedAt);
