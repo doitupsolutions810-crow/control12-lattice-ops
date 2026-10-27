@@ -207,6 +207,11 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "approved-independent-numerical-certificate-method",
     "certificate-source-commit-and-model-input-digest-match",
     "certificate-proof-artifact-digest-verified",
+    "numerical-certification-certificate-signature-verified-under-independent-key",
+    "numerical-certification-key-id-pinned-separately-from-receipt-key",
+    "numerical-certification-generated-at-expires-at-freshness-validated",
+    "numerical-certification-proof-digest-matches-downloaded-evidence",
+    "numerical-certification-bounds-within-measurement-tolerance",
     "certified-curvature-and-metric-area-error-bounds-within-tolerance",
     "empirical-richardson-estimates-not-treated-as-rigorous",
     "numerical-certifier-identity-pinned-independent-of-receipt",
@@ -248,7 +253,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   assert.deepEqual(baseline.g6ResidualMeasurementContract, {
     repository: "great-scale",
     path: "contracts/g6-residual-measurement/v1.schema.json",
-    schemaBlobSha: "89ed8276ea7ba4d65fa9b416a960ad5acba296d2",
+    schemaBlobSha: "b4d59db4cda7a53d82bdfc9333ad504a864f9cf5",
     version: "v1",
     status: "schema-only-not-producer",
     mapping: {
@@ -265,6 +270,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
       numericalCertificationRequired: "A separate numericalCertification object is mandatory; model errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
       numericalCertificationEvidenceVerified: "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
       numericalCertificationClaimNotProof: "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion.",
+      numericalCertificationTrustAnchorSeparate: "certificateKeyId and certificateSignature must verify under a separately configured, independently pinned numerical-certificate public key; do not treat the outer G6 receipt signature as proof of the certificate.",
     },
   });
   assert.match(baseline.g6ResidualMeasurementContract.mapping.measurementBuildIdDistinctFromTargetBuildId, /must not be assumed equal/);
@@ -274,6 +280,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationRequired, /Richardson estimates as empirical only/i);
   assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationEvidenceVerified, /recompute proofDigest/i);
   assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationClaimNotProof, /verified=true is only a claim/i);
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationTrustAnchorSeparate, /separately configured.*pinned numerical-certificate public key/i);
 
   const changed = structuredClone(baseline);
   changed.g6ResidualMeasurementContract.schemaBlobSha = "f".repeat(40);
