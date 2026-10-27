@@ -118,6 +118,13 @@ function verifySignedFreshness(statusDocument, add) {
   }
 }
 
+function hasExactKeys(value, expected) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const actual = Object.keys(value);
+  return actual.length === expected.length &&
+    expected.every(key => Object.prototype.hasOwnProperty.call(value, key));
+}
+
 function propertyAllows(property, expected) {
   if (!property || typeof property !== "object") return false;
   if (Object.prototype.hasOwnProperty.call(property, "const")) {
@@ -172,14 +179,20 @@ function validGateEntries(gateData) {
 function schemaRequiresExactGateCoverage(gateSchema) {
   const allOf = gateSchema?.allOf;
   if (!Array.isArray(allOf) || allOf.length !== EXPECTED_GATE_IDS.length) return false;
-  return EXPECTED_GATE_IDS.every(gateId => allOf.some(rule => {
-    const containsSchema = rule?.contains;
-    const required = Array.isArray(containsSchema?.required) ? containsSchema.required : [];
-    return containsSchema?.properties?.id?.const === gateId &&
-      required.includes("id") &&
-      rule.minContains === 1 &&
-      rule.maxContains === 1;
-  }));
+  const validRules = allOf.every(rule =>
+    hasExactKeys(rule, ["contains", "minContains", "maxContains"]) &&
+    hasExactKeys(rule.contains, ["type", "required", "properties"]) &&
+    rule.contains.type === "object" &&
+    Array.isArray(rule.contains.required) &&
+    rule.contains.required.length === 1 &&
+    rule.contains.required[0] === "id" &&
+    hasExactKeys(rule.contains.properties, ["id"]) &&
+    hasExactKeys(rule.contains.properties.id, ["const"]) &&
+    EXPECTED_GATE_IDS.includes(rule.contains.properties.id.const) &&
+    rule.minContains === 1 &&
+    rule.maxContains === 1);
+  return validRules && EXPECTED_GATE_IDS.every(gateId =>
+    allOf.some(rule => rule.contains.properties.id.const === gateId));
 }
 
 /**
@@ -213,6 +226,9 @@ function verifyTrust(statusDocument, schemaDocument) {
 
   if (schemaDocument.$schema !== STATUS_SCHEMA_URI) {
     add("schema.$schema", STATUS_SCHEMA_URI, schemaDocument.$schema);
+  }
+  if (!hasExactKeys(schemaDocument, ["$schema", "type", "additionalProperties", "required", "properties"])) {
+    add("schema.rootKeys", "exact JSON Schema root keys", Object.keys(schemaDocument));
   }
   if (schemaDocument.type !== "object") add("schema.type", "object", schemaDocument.type);
   if (schemaDocument.additionalProperties !== false) add("schema.additionalProperties", false, schemaDocument.additionalProperties);
@@ -265,10 +281,12 @@ function verifyTrust(statusDocument, schemaDocument) {
       const exactIdEnum = Array.isArray(itemIdEnum) &&
         itemIdEnum.length === EXPECTED_GATE_IDS.length &&
         EXPECTED_GATE_IDS.every(id => itemIdEnum.includes(id));
-      const exactArray = gateSchema.type === "array" &&
+      const exactArray = hasExactKeys(gateSchema, ["type", "minItems", "maxItems", "uniqueItems", "allOf", "items"]) &&
+        gateSchema.type === "array" &&
         gateSchema.minItems === EXPECTED_TRUST.mandatoryGates &&
         gateSchema.maxItems === EXPECTED_TRUST.mandatoryGates &&
         gateSchema.uniqueItems === true &&
+        hasExactKeys(itemSchema, ["type", "additionalProperties", "required", "properties"]) &&
         itemSchema?.type === "object" &&
         itemSchema?.additionalProperties === false &&
         itemRequired.length === 2 && new Set(itemRequired).size === 2 &&
@@ -276,20 +294,25 @@ function verifyTrust(statusDocument, schemaDocument) {
         Object.keys(itemProperties || {}).length === 2 &&
         Object.prototype.hasOwnProperty.call(itemProperties || {}, "id") &&
         Object.prototype.hasOwnProperty.call(itemProperties || {}, "status") &&
+        hasExactKeys(itemProperties?.id, ["enum"]) &&
+        hasExactKeys(itemProperties?.status, ["const"]) &&
         exactIdEnum &&
         propertyAllows(itemProperties?.status, "READY") &&
         schemaRequiresExactGateCoverage(gateSchema);
       const gateProperties = gateSchema.properties;
       const gateRequired = Array.isArray(gateSchema.required) ? gateSchema.required : [];
-      const exactObject = gateSchema.type === "object" &&
+      const exactObject = hasExactKeys(gateSchema, ["type", "additionalProperties", "required", "properties"]) &&
+        gateSchema.type === "object" &&
         gateSchema.additionalProperties === false &&
         gateProperties && Object.keys(gateProperties).length === EXPECTED_TRUST.mandatoryGates &&
-        gateRequired.length === EXPECTED_GATE_IDS.length &&
+        gateRequired.length === EXPECTED_GATE_IDS.length && new Set(gateRequired).size === EXPECTED_GATE_IDS.length &&
         EXPECTED_GATE_IDS.every(id => gateRequired.includes(id) &&
           gateProperties[id] && (
-            propertyAllows(gateProperties[id], "READY") ||
-            (gateProperties[id].type === "object" && gateProperties[id].additionalProperties === false &&
+            (hasExactKeys(gateProperties[id], ["const"]) && propertyAllows(gateProperties[id], "READY")) ||
+            (hasExactKeys(gateProperties[id], ["type", "additionalProperties", "properties", "required"]) &&
+             gateProperties[id].type === "object" && gateProperties[id].additionalProperties === false &&
              gateProperties[id].properties && Object.keys(gateProperties[id].properties).length === 1 &&
+             hasExactKeys(gateProperties[id].properties.status, ["const"]) &&
              propertyAllows(gateProperties[id].properties.status, "READY") &&
              Array.isArray(gateProperties[id].required) && gateProperties[id].required.length === 1 &&
              gateProperties[id].required[0] === "status"))
