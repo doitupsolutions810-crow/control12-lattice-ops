@@ -227,6 +227,10 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "measurement-build-id-distinct-from-target-build-id",
     "target-build-id-matches-g0-g6-attestation-build-id",
     "target-artifact-digest-matches-g0-g6-attestation-artifact-digest",
+    "quadrature-rigorous-certificate-distinct-from-empirical-estimates",
+    "numerical-certificate-upper-bounds-and-proof-digest-verified",
+    "numerical-certificate-source-commit-and-model-input-digest-bound",
+    "independent-numerical-certificate-verified",
     "target-commit-matches-g0-g6-attestation-source-commit",
     "both-source-model-commit-and-consumer-release-commit-pinned",
   ]) {
@@ -239,7 +243,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   assert.deepEqual(baseline.g6ResidualMeasurementContract, {
     repository: "great-scale",
     path: "contracts/g6-residual-measurement/v1.schema.json",
-    schemaBlobSha: "002c4abb141833e1361fa96d36474dece1a77ad1",
+    schemaBlobSha: "89ed8276ea7ba4d65fa9b416a960ad5acba296d2",
     version: "v1",
     status: "schema-only-not-producer",
     mapping: {
