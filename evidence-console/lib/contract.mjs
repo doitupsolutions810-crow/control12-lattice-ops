@@ -260,7 +260,7 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
     return { valid: false, failures: ["status_not_object"] };
   }
   const expectedFields = [
-    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
+    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceSchemaDigest", "sourceEvidenceDigest",
     "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
   ];
   const expectedFieldSet = new Set(expectedFields);
