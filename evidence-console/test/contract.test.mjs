@@ -101,6 +101,28 @@ test("producer schema rejects widened or extra fields and open gate-item schemas
   assert.ok(openItemsResult.failures.includes("schema_contract_check_gate_rules_invalid"));
 });
 
+test("producer verifier rejects unknown JSON Schema keywords at root and nested levels", () => {
+  const schema = buildEvidenceSchema(fixtureEnv);
+
+  const rootExtra = structuredClone(schema);
+  rootExtra.not = {};
+  const rootResult = verifyEvidenceSchema(rootExtra, { env: fixtureEnv });
+  assert.equal(rootResult.valid, false);
+  assert.ok(rootResult.failures.includes("schema_root_contract_invalid"));
+
+  const gateExtra = structuredClone(schema);
+  gateExtra.properties.gates.not = {};
+  const gateResult = verifyEvidenceSchema(gateExtra, { env: fixtureEnv });
+  assert.equal(gateResult.valid, false);
+  assert.ok(gateResult.failures.includes("schema_contract_check_gate_rules_invalid"));
+
+  const ruleExtra = structuredClone(schema);
+  ruleExtra.properties.gates.allOf[0].contains.not = {};
+  const ruleResult = verifyEvidenceSchema(ruleExtra, { env: fixtureEnv });
+  assert.equal(ruleResult.valid, false);
+  assert.ok(ruleResult.failures.includes("schema_contract_check_gate_rules_invalid"));
+});
+
 test("producer status verifier rejects properties outside the signed contract", () => {
   const status = buildEvidenceStatus({ env: fixtureEnv });
   status.operatorNote = "not in the v5.4.0 contract";
