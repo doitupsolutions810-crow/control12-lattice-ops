@@ -207,6 +207,18 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
   if (!status || typeof status !== "object" || Array.isArray(status)) {
     return { valid: false, failures: ["status_not_object"] };
   }
+  for (const [key, expected] of Object.entries(EVIDENCE_CONTRACT)) {
+    if (status[key] !== expected) failures.push("status_contract_field_mismatch:" + key);
+  }
+  if (status.overall !== "READY") failures.push("status_overall_not_ready");
+  const gates = Array.isArray(status.gates) ? status.gates : [];
+  const ids = gates.map(gate => gate?.id);
+  if (gates.length !== CHECK_IDS.length ||
+      new Set(ids).size !== CHECK_IDS.length ||
+      !CHECK_IDS.every(id => ids.includes(id)) ||
+      gates.some(gate => gate?.status !== "READY")) {
+    failures.push("status_contract_check_gates_invalid");
+  }
   const generated = parseSourceTimestamp(status.sourceGeneratedAt);
   const expires = parseSourceTimestamp(status.sourceExpiresAt);
   if (!Number.isFinite(generated) || !Number.isFinite(expires)) {
