@@ -79,6 +79,7 @@ const status = goodStatus();
 const evidenceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
+  additionalProperties: false,
   required: [...Object.keys(trust), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest", "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"],
   properties: {
     ...Object.fromEntries(Object.entries(trust).map(([key, value]) => [key, { const: value }])),
@@ -88,7 +89,7 @@ const evidenceSchema = {
     sourceSignature: { type: "string", pattern: "^[A-Za-z0-9+/]{86}==$" },
     sourceGeneratedAt: { type: "string", format: "date-time" },
     sourceExpiresAt: { type: "string", format: "date-time" },
-    overall: { enum: ["READY", "HOLD"] },
+    overall: { const: "READY" },
     gates: {
       type: "object",
       required: [...gateIds],
@@ -97,6 +98,52 @@ const evidenceSchema = {
     }
   }
 };
+
+
+test("a widened enum or unknown contract property blocks procurement", () => {
+  const widened = structuredClone(evidenceSchema);
+  widened.properties.syntheticEvidenceRejected = { enum: [true, false] };
+  const widenedResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: widened });
+  assert.equal(widenedResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(widenedResult.trust.mismatches.some(item => item.key === "schema.properties.syntheticEvidenceRejected"));
+
+  const weakOverall = structuredClone(evidenceSchema);
+  weakOverall.properties.overall = { enum: ["READY", "HOLD"] };
+  const weakOverallResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: weakOverall });
+  assert.equal(weakOverallResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(weakOverallResult.trust.mismatches.some(item => item.key === "schema.properties.overall"));
+
+  const extra = structuredClone(evidenceSchema);
+  extra.properties.operatorNote = { type: "string" };
+  const extraResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: extra });
+  assert.equal(extraResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(extraResult.trust.mismatches.some(item => item.key === "schema.properties"));
+});
+
+test("extra signed status fields and open gate-item schemas are rejected", () => {
+  const extraStatus = signStatus({ ...status, operatorNote: "unexpected" });
+  const extraStatusResult = evaluateProcurement({ operations, success, evidenceStatus: extraStatus, evidenceSchema });
+  assert.equal(extraStatusResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(extraStatusResult.trust.mismatches.some(item => item.key === "status.fields"));
+
+  const openItems = structuredClone(evidenceSchema);
+  openItems.properties.gates = {
+    type: "array", minItems: 7, maxItems: 7, uniqueItems: true,
+    allOf: gateIds.map(id => ({
+      contains: { type: "object", required: ["id"], properties: { id: { const: id } } },
+      minContains: 1, maxContains: 1
+    })),
+    items: {
+      type: "object", additionalProperties: true, required: ["id", "status"],
+      properties: { id: { enum: [...gateIds] }, status: { const: "READY" } }
+    }
+  };
+  const openItemsResult = evaluateProcurement({ operations, success, evidenceStatus: {
+    ...status, gates: gateIds.map(id => ({ id, status: "READY" }))
+  }, evidenceSchema: openItems });
+  assert.equal(openItemsResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(openItemsResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+});
 
 test("status payload mutation after signing is rejected", () => {
   const modified = { ...status, privacy: "remote-storage" };
@@ -217,7 +264,7 @@ test("a live status claim cannot compensate for a weakened schema", () => {
 });
 
 test("procurement holds if any live gate is not READY", () => {
-  const oneGateHeld = { ...status, gates: { ...status.gates, G6: "HOLD" } };
+  const oneGateHeld = { ...status, gates: { ...status.gates, E6: "HOLD" } };
   const result = evaluateProcurement({
     operations,
     success,
@@ -255,7 +302,7 @@ test("schema must require every gate key, not merely describe each property", ()
 test("duplicate or unknown live gate IDs block procurement", () => {
   const duplicated = {
     ...status,
-    gates: { G0: "READY", G1: "READY", G2: "READY", G3: "READY", G4: "READY", G5: "READY", G7: "READY" }
+    gates: { E0: "READY", E1: "READY", E2: "READY", E3: "READY", E4: "READY", E5: "READY", E7: "READY" }
   };
   const result = evaluateProcurement({
     operations,
@@ -267,7 +314,7 @@ test("duplicate or unknown live gate IDs block procurement", () => {
   assert.ok(result.trust.mismatches.some(item => item.key === "status.gates"));
 });
 
-test("array schema requires one occurrence of every G0-G6 gate ID", () => {
+test("array schema requires one occurrence of every E0-E6 gate ID", () => {
   const arrayStatus = {
     ...status,
     gates: gateIds.map(id => ({ id, status: "READY" }))
