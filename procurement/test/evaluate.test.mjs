@@ -145,6 +145,26 @@ test("extra signed status fields and open gate-item schemas are rejected", () =>
   assert.ok(openItemsResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
 });
 
+test("individual fixed-value, digest, signature, and timestamp schemas reject extra keywords", () => {
+  const fixed = structuredClone(evidenceSchema);
+  fixed.properties.version.not = {};
+  const fixedResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: fixed });
+  assert.equal(fixedResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(fixedResult.trust.mismatches.some(item => item.key === "schema.properties.version"));
+
+  const timestamp = structuredClone(evidenceSchema);
+  timestamp.properties.sourceGeneratedAt.anyOf = [{ type: "string" }];
+  const timestampResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: timestamp });
+  assert.equal(timestampResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(timestampResult.trust.mismatches.some(item => item.key === "schema.properties.sourceGeneratedAt"));
+
+  const digest = structuredClone(evidenceSchema);
+  digest.properties.sourceEvidenceDigest.not = {};
+  const digestResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: digest });
+  assert.equal(digestResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(digestResult.trust.mismatches.some(item => item.key === "schema.properties.sourceEvidenceDigest"));
+});
+
 test("unknown JSON Schema keywords at root and nested gate levels fail closed", () => {
   const rootExtra = structuredClone(evidenceSchema);
   rootExtra.not = {};
