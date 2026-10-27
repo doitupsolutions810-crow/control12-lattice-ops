@@ -88,6 +88,10 @@ export function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
+export function sourceSchemaDigest(schemaDocument) {
+  return createHash("sha256").update(canonicalJson(schemaDocument)).digest("hex");
+}
+
 export function sourceDigest(statusDocument) {
   const unsigned = { ...statusDocument };
   delete unsigned.sourceEvidenceDigest;
@@ -113,13 +117,14 @@ export function buildEvidenceSchema(env = process.env) {
     additionalProperties: false,
     required: [
       ...Object.keys(EVIDENCE_CONTRACT),
-      "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest", "sourceSignature",
+      "sourceIdentity", "sourceKeyId", "sourceSchemaDigest", "sourceEvidenceDigest", "sourceSignature",
       "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
     ],
     properties: {
       ...Object.fromEntries(Object.entries(EVIDENCE_CONTRACT).map(([key, value]) => [key, { const: value }])),
       sourceIdentity: { const: SOURCE_IDENTITY },
       sourceKeyId: { const: keyId },
+      sourceSchemaDigest: { type: "string", pattern: DIGEST_PATTERN },
       sourceEvidenceDigest: { type: "string", pattern: DIGEST_PATTERN },
       sourceSignature: { type: "string", pattern: SIGNATURE_PATTERN },
       sourceGeneratedAt: { type: "string", format: "date-time" },
@@ -180,6 +185,10 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
   if (!hasExactKeys(properties.sourceKeyId, ["const"]) || properties.sourceKeyId.const !== keyId) {
     failures.push("schema_source_key_id_invalid");
   }
+  if (!hasExactKeys(properties.sourceSchemaDigest, ["type", "pattern"]) ||
+      properties.sourceSchemaDigest.type !== "string" || properties.sourceSchemaDigest.pattern !== DIGEST_PATTERN) {
+    failures.push("schema_schema_digest_rule_invalid");
+  }
   if (!hasExactKeys(properties.sourceEvidenceDigest, ["type", "pattern"]) ||
       properties.sourceEvidenceDigest.type !== "string" || properties.sourceEvidenceDigest.pattern !== DIGEST_PATTERN) {
     failures.push("schema_digest_rule_invalid");
@@ -199,7 +208,7 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
   }
   const gates = properties.gates;
   const expectedFields = [
-    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
+    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceSchemaDigest", "sourceEvidenceDigest",
     "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
   ];
   const expectedFieldSet = new Set(expectedFields);
@@ -293,6 +302,8 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
   }
   if (status.sourceIdentity !== SOURCE_IDENTITY) failures.push("source_identity_mismatch");
   if (status.sourceKeyId !== materials.keyId) failures.push("source_key_id_mismatch");
+  const schemaDigest = sourceSchemaDigest(buildEvidenceSchema(env));
+  if (status.sourceSchemaDigest !== schemaDigest) failures.push("source_schema_digest_mismatch");
   const digest = sourceDigest(status);
   if (status.sourceEvidenceDigest !== digest) failures.push("source_digest_mismatch");
   if (typeof status.sourceSignature !== "string" || !new RegExp(SIGNATURE_PATTERN).test(status.sourceSignature)) {
@@ -319,6 +330,7 @@ export function buildEvidenceStatus({ env = process.env, now = Date.now() } = {}
     ...EVIDENCE_CONTRACT,
     sourceIdentity: SOURCE_IDENTITY,
     sourceKeyId: keyId,
+    sourceSchemaDigest: sourceSchemaDigest(buildEvidenceSchema(env)),
     sourceGeneratedAt: new Date(currentTime).toISOString(),
     sourceExpiresAt: new Date(currentTime + 60 * 1000).toISOString(),
     overall: "READY",
