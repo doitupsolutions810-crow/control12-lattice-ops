@@ -363,7 +363,7 @@
     {
       "from": "great-scale",
       "to": "living-intermediate-control-plane",
-      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's residual modules are calculation libraries, not live production measurement endpoints; the G6 producer must bind a fresh same-build observation to model parameters, the signed/absolute curvature tuple, numerical convergence diagnostics, immutable input/output digests, and an independently pinned trust anchor.",
+      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's residual modules are calculation libraries, not live production measurement endpoints; the G6 producer must bind a fresh same-build observation to model parameters, the signed/absolute curvature tuple, numerical convergence diagnostics, immutable input/output digests, and an independently pinned trust anchor. The proposed receipt schema is contracts/g6-residual-measurement/v1.schema.json (blob a0956c825e9a8974f5855054d2c80eb4433391f9); it maps measurement.STopological to downstream residual.S and measuredAt to residual.measuredAt, but has no live producer/verifier endpoint.",
       "verificationStatus": "proposed-not-verified",
       "requiredEvidence": [
         "exact-commit-sha",
@@ -390,7 +390,16 @@
         "quadrature-refinement-and-grid-origin-discrepancies",
         "finite-error-bounds-and-configured-tolerance",
         "topological-mapping-valid-true",
-        "source-commit-and-input-output-artifact-digests"
+        "source-commit-and-input-output-artifact-digests",
+        "versioned-g6-residual-measurement-schema-v1",
+        "measurement-st-topological-maps-to-consumer-residual-S",
+        "measurement-timestamp-maps-to-consumer-residual-measured-at",
+        "issuer-and-build-id-map-to-residual-provenance",
+        "source-commit-equals-successful-run-head-sha",
+        "canonical-json-sha256-and-ed25519-signature-verified",
+        "model-parameter-and-input-digest-reproduced",
+        "numerical-convergence-and-rigorous-error-bounds-validated",
+        "artifact-role-and-digest-binding-independently-verified"
       ]
     },
     {
@@ -515,5 +524,21 @@
     "document": "docs/OPERATION_EVIDENCE_CONTRACT_V1.md",
     "schema": "contracts/operation-evidence/v1.schema.json",
     "status": "proposed-not-runtime-verified"
+  },
+  "g6ResidualMeasurementContract": {
+    "repository": "great-scale",
+    "path": "contracts/g6-residual-measurement/v1.schema.json",
+    "schemaBlobSha": "a0956c825e9a8974f5855054d2c80eb4433391f9",
+    "version": "v1",
+    "status": "schema-only-not-producer",
+    "mapping": {
+      "measurementSTopologicalToResidualS": "measurement.STopological -> residual.S",
+      "measuredAtToResidualMeasuredAt": "measuredAt -> residual.measuredAt",
+      "issuerToResidualSourceId": "issuer -> residual.sourceId",
+      "buildIdToResidualBuildId": "buildId -> residual.buildId",
+      "sourceCommitEqualsWorkflowHead": "source.commitSha must equal execution.headSha",
+      "artifactBinding": "artifact.digest and model.inputDigest must be verified against the intended source/build/artifact scope",
+      "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor"
+    }
   }
 }
