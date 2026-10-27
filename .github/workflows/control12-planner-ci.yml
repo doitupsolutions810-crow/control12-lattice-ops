@@ -1,0 +1,39 @@
+name: CONTROL12 planner contract CI
+
+on:
+  pull_request:
+    paths:
+      - "control-plane/planner.py"
+      - "tests/test_v5_planner.py"
+      - ".github/workflows/control12-planner-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "control-plane/planner.py"
+      - "tests/test_v5_planner.py"
+      - ".github/workflows/control12-planner-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control12-planner-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  planner-contract:
+    name: Planner constraints and fail-closed tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Show Python version
+        run: python3 --version
+      - name: Install test runner
+        run: python3 -m pip install --user pytest
+      - name: Run planner contract tests
+        run: python3 -m pytest -q tests/test_v5_planner.py
