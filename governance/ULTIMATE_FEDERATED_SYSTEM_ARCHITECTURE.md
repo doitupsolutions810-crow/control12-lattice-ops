@@ -108,7 +108,6 @@ The inventory endpoint returned 35 repositories: **14 public and 21 private**. T
 | `ghostshell-docs` | GhostShell documentation and integration/test assets |
 | `cyclekernel-attestpipe_q6-platform-upgrade-2` | Private repository; tree endpoint returned not found, status unresolved |
 | `cyclekernel-showcase` | CycleKernel demonstration/showcase application |
-| `capability-authority` / `capability-plane` | Same rights-method security contract is being proposed in both; this duplication is a drift risk, not integration |
 | `great-scale` | Mathematical residual/QGT research, tests, and public-only integration registry |
 | `github-api-automation` | GitHub automation utility; scope and production interfaces need a contract audit |
 | `v0-ai-agent-for-servers` | Next.js server-agent scaffold plus production-cluster-mode docs |
