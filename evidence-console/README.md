@@ -5,7 +5,7 @@ This is a read-only, signed status surface, not a production-acceptance evaluato
 - GET /api/status — source-issued status contract with source generation time, expiry, canonical payload digest, and Ed25519 signature.
 - GET /api/v1/evidence/schema — matching JSON Schema, independently pinning the source identity and key ID.
 
-It writes no evidence, stores no requester data, and performs no production mutations. Evidence-console check identifiers E0–E6 refer only to integrity and availability of this status contract. They are not production gates G0–G6; production remains governed by separate operations/success evaluators. An unavailable signer returns HTTP 503 with no authority claim. It must never return a fabricated all-ready production decision.
+It writes no evidence, stores no requester data, and performs no production mutations. Evidence-console check identifiers E0–E6 refer only to integrity and availability of this status contract. They are not production gates G0–G6; production remains governed by separate operations/success evaluators. The producer's E-check definitions are: E0 source identity; E1 signing-key configuration and key-pair match; E2 source timestamp and expiry window; E3 the exact schema contract; E4 payload digest binding; E5 signature verification against the pinned key; E6 read-only GET behavior. The status emitter performs its key, timestamp, digest, signature, and schema self-checks before returning a READY contract; the endpoint handlers reject non-GET methods and do not write state. An unavailable signer returns HTTP 503 with no authority claim. It must never return a fabricated all-ready production decision.
 
 ## Vercel configuration
 
