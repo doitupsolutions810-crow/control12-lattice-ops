@@ -106,6 +106,7 @@ def test_rejects_malformed_target(target):
     ("version", " "),
     ("version", None),
     ("environment", "unknown"),
+    ("environment", []),
 ])
 def test_rejects_malformed_target_fields(field, value):
     intent = valid_intent()
