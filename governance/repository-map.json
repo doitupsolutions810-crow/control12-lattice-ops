@@ -403,7 +403,11 @@
         "target-artifact-digest-matches-g0-g6-attestation-artifact-digest",
         "measurement-artifact-distinct-from-target-artifact",
         "target-build-and-target-artifact-digest-binding",
-        "issuer-and-target-build-id-map-to-residual-provenance"
+        "issuer-and-target-build-id-map-to-residual-provenance",
+        "independent-numerical-certificate-verified",
+        "numerical-certificate-source-commit-and-model-input-digest-bound",
+        "numerical-certificate-upper-bounds-and-proof-digest-verified",
+        "quadrature-rigorous-certificate-distinct-from-empirical-estimates"
       ]
     },
     {
@@ -532,7 +536,7 @@
   "g6ResidualMeasurementContract": {
     "repository": "great-scale",
     "path": "contracts/g6-residual-measurement/v1.schema.json",
-    "schemaBlobSha": "002c4abb141833e1361fa96d36474dece1a77ad1",
+    "schemaBlobSha": "89ed8276ea7ba4d65fa9b416a960ad5acba296d2",
     "version": "v1",
     "status": "schema-only-not-producer",
     "mapping": {
