@@ -433,7 +433,15 @@
         "numerical-proof-origin-pinned-by-deployment-config",
         "numerical-proof-fetch-rejects-redirects-and-verifies-exact-response-url",
         "numerical-certificate-canonical-measurement-digest-recomputed-and-bound",
-        "numerical-certificate-evidence-origin-pinned-and-redirects-rejected"
+        "numerical-certificate-evidence-origin-pinned-and-redirects-rejected",
+        "exact-g6-measurement-schema-field-set",
+        "deployment-pinned-maximum-quadrature-tolerance",
+        "recomputed-absolute-curvature-budget-equals-positive-plus-negative",
+        "recomputed-metric-area-excess-and-topological-floor",
+        "recomputed-polarization-topological-scalar-and-psi-identities",
+        "convergence-and-empirical-estimate-diagnostics-within-tolerance",
+        "independent-certificate-signature-verified-under-separate-pinned-key",
+        "certificate-measurement-digest-matches-canonical-qgt-output"
       ]
     },
     {
