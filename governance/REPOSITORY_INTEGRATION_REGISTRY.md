@@ -93,7 +93,7 @@ The private Lattice Ops synthetic run [#40452934805](https://github.com/doitupso
 
 **Owner verification:** check account payment method / billing authorization and Actions spending limits first, then inspect repository Actions settings and the UI's startup error. If the synthetic `BuildFailed` row persists after those checks, contact GitHub Support with workflow ID `324662747`, check-suite ID `109640886214`, run ID `40452934805`, and head SHA `a50df8ac8501157c39a4749fddb2fd9cf85cedcb`. No billing information or Actions permission state was readable through this audit, and no CI pass is claimed.
 
-## Composite release identity in the G6 mapping
+## Separate source and target identities in the G6 mapping
 
 The pinned Great Scale G6 receipt schema distinguishes the Great Scale model artifact digest from the Control Plane production artifact digest. `source.commitSha` identifies the Great Scale model revision and must equal that receipt's `execution.headSha`; it is not the Control Plane source SHA. The receipt `targetBuildId` maps into the Control Plane residual build ID, and the Control Plane verifier requires it to equal the final G0-G6 attestation build ID. `measurementBuildId` is source-side provenance and is not copied into the residual field. `target.repository/commitSha` must match the attestation's source identity, and `targetArtifact.digest` must match its pinned target artifact digest.
 
