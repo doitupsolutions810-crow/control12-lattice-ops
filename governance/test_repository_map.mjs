@@ -232,7 +232,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   assert.deepEqual(baseline.g6ResidualMeasurementContract, {
     repository: "great-scale",
     path: "contracts/g6-residual-measurement/v1.schema.json",
-    schemaBlobSha: "a0956c825e9a8974f5855054d2c80eb4433391f9",
+    schemaBlobSha: "5322c32362ff42b5e251672d0b5ac9c61ae106a5",
     version: "v1",
     status: "schema-only-not-producer",
     mapping: {
@@ -245,6 +245,8 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
       trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
     },
   });
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.buildIdToResidualBuildId, /shared composite release ID/);
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.artifactBinding, /distinct from the Control Plane acceptance artifact digest/);
 
   const changed = structuredClone(baseline);
   changed.g6ResidualMeasurementContract.schemaBlobSha = "f".repeat(40);
