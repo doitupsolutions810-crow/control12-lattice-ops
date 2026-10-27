@@ -57,7 +57,7 @@ function signStatus(value) {
   const message = [
     value.sourceIdentity, value.sourceKeyId, value.sourceGeneratedAt,
     value.sourceExpiresAt, value.sourceEvidenceDigest
-  ].join("\\n");
+  ].join("\n");
   value.sourceSignature = sign(null, Buffer.from(message), fixturePrivateKey).toString("base64");
   return value;
 }
