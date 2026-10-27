@@ -145,6 +145,26 @@ test("extra signed status fields and open gate-item schemas are rejected", () =>
   assert.ok(openItemsResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
 });
 
+test("unknown JSON Schema keywords at root and nested gate levels fail closed", () => {
+  const rootExtra = structuredClone(evidenceSchema);
+  rootExtra.not = {};
+  const rootResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: rootExtra });
+  assert.equal(rootResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(rootResult.trust.mismatches.some(item => item.key === "schema.rootKeys"));
+
+  const gateExtra = structuredClone(evidenceSchema);
+  gateExtra.properties.gates.not = {};
+  const gateResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: gateExtra });
+  assert.equal(gateResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(gateResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+
+  const ruleExtra = structuredClone(evidenceSchema);
+  ruleExtra.properties.gates.allOf[0].contains.not = {};
+  const ruleResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: ruleExtra });
+  assert.equal(ruleResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(ruleResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
+});
+
 test("gate entries cannot carry fields outside the signed schema", () => {
   const extraEntry = structuredClone(status);
   extraEntry.gates.E0 = { status: "READY", operatorNote: "not allowed" };
