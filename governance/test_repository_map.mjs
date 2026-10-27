@@ -197,7 +197,7 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
   );
   assert.ok(edge);
   assert.equal(edge.verificationStatus, "proposed-not-verified");
-  assert.match(edge.contract, /not a live production measurement or acceptance attestation/);
+  assert.match(edge.contract, /not live production measurement endpoints/i);
   for (const requirement of [
     "live-measurement-source-identity",
     "target-build-and-target-artifact-digest-binding",
