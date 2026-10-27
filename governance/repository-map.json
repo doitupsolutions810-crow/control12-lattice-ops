@@ -363,7 +363,7 @@
     {
       "from": "great-scale",
       "to": "living-intermediate-control-plane",
-      "contract": "Versioned mathematical/model evidence bound to exact source revisions. A Great Scale residual calculation is a numeric model output, not a live production measurement or acceptance attestation. G6 requires a trusted, fresh, same-build/source residual observation.",
+      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's residual modules are calculation libraries, not live production measurement endpoints; the G6 producer must bind a fresh same-build observation to model parameters, the signed/absolute curvature tuple, numerical convergence diagnostics, immutable input/output digests, and an independently pinned trust anchor.",
       "verificationStatus": "proposed-not-verified",
       "requiredEvidence": [
         "exact-commit-sha",
@@ -380,7 +380,17 @@
         "authoritative-g0-g6-producer-verification",
         "independent-signing-key-and-pinned-trust-anchor",
         "exact-head-end-to-end-test-run",
-        "topology-derived-residual-domain-0-to-0.25"
+        "topology-derived-residual-domain-0-to-0.25",
+        "selected-model-identity-and-parameterization",
+        "explicit-gap-open-and-model-assumptions",
+        "chern-number-and-integrated-curvature",
+        "absolute-positive-and-negative-curvature-budgets",
+        "metric-area-budget-and-topological-excess",
+        "signed-topological-polarization-and-residual-S",
+        "quadrature-refinement-and-grid-origin-discrepancies",
+        "finite-error-bounds-and-configured-tolerance",
+        "topological-mapping-valid-true",
+        "source-commit-and-input-output-artifact-digests"
       ]
     },
     {
