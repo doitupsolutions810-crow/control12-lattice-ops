@@ -395,7 +395,7 @@
         "source-commit-equals-successful-run-head-sha",
         "canonical-json-sha256-and-ed25519-signature-verified",
         "model-parameter-and-input-digest-reproduced",
-        "numerical-convergence-and-rigorous-error-bounds-validated",
+        "numerical-convergence-and-certified-error-bounds-validated-from-independent-certificate",
         "both-source-model-commit-and-consumer-release-commit-pinned",
         "measurement-build-id-distinct-from-target-build-id",
         "target-build-id-matches-g0-g6-attestation-build-id",
@@ -413,7 +413,12 @@
         "certificate-source-sha-and-model-input-digest-match",
         "certified-curvature-and-metric-area-error-upper-bounds-within-tolerance",
         "certificate-evidence-url-and-proof-digest-independently-validated",
-        "raw-model-output-alone-is-not-g6-eligible"
+        "raw-model-output-alone-is-not-g6-eligible",
+        "empirical-richardson-estimates-not-treated-as-rigorous-bounds",
+        "independent-numerical-certification-evidence-fetch-and-proof-digest-verified",
+        "certified-curvature-and-metric-area-error-bounds-within-tolerance",
+        "certificate-verifier-method-and-identity-pinned",
+        "model-g6-certification-eligibility-not-asserted-from-model-output"
       ]
     },
     {
@@ -555,7 +560,10 @@
       "targetArtifactDigestToAcceptanceArtifact": "targetArtifact.digest must equal final G0-G6 attestation.artifact.digest.",
       "sourceCommitEqualsWorkflowHead": "source.commitSha must equal execution.headSha",
       "measurementArtifactBinding": "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
-      "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor"
+      "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
+      "numericalCertificationRequired": "A separate numericalCertification object is mandatory; model errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
+      "numericalCertificationEvidenceVerified": "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
+      "numericalCertificationClaimNotProof": "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion."
     }
   }
 }
