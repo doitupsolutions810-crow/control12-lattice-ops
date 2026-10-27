@@ -467,6 +467,25 @@
         "observed-result",
         "authority-and-provenance-check"
       ]
+    },
+    {
+      "from": "control12-lattice-ops",
+      "to": "living-intermediate-control-plane",
+      "contract": "Read-only signed v5.4.0 E0-E6 status/schema contract: source identity, pinned key ID, sourceSchemaDigest, canonical payload digest, Ed25519 signature, and freshness. This proves the source-console contract only; it is not G0-G6 production acceptance.",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-lattice-ops-commit-sha",
+        "exact-control-plane-consumer-commit-sha",
+        "live-status-response",
+        "live-schema-response",
+        "source-schema-digest-match",
+        "canonical-payload-digest-match",
+        "ed25519-signature-verified-against-independent-pinned-key",
+        "source-identity-and-freshness-verified",
+        "exact-head-end-to-end-test-run",
+        "observed-result",
+        "explicit-e0-e6-versus-g0-g6-separation"
+      ]
     }
   ],
   "operationEvidenceContract": {
