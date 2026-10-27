@@ -79,6 +79,19 @@ def evaluate_evidence(
     authority, policy, signature = envelope.get("authority"), envelope.get("policy"), envelope.get("signature")
     if not all(isinstance(x, Mapping) for x in (claim, subject, execution, authority, policy, signature)):
         return _fail("INVALID_SHAPE", "Claim, subject, execution, authority, policy and signature must be objects.")
+    allowed_top = required
+    if set(envelope.keys()) != allowed_top:
+        return _fail("UNKNOWN_FIELDS", "Envelope contains fields outside the v1 contract.")
+    allowed_nested = (
+        (claim, {"status", "summary"}),
+        (subject, {"repository", "revision", "artifact_sha256"}),
+        (execution, {"mode", "worker_receipt_id", "local"}),
+        (authority, {"issuer", "key_id"}),
+        (policy, {"id", "version"}),
+        (signature, {"algorithm", "value"}),
+    )
+    if any(set(obj.keys()) != allowed for obj, allowed in allowed_nested):
+        return _fail("UNKNOWN_FIELDS", "A nested object contains fields outside the v1 contract.")
     if claim.get("status") != "PASS":
         return _fail("CLAIM_NOT_PASS", "Only an explicit PASS claim can be accepted.")
     if subject.get("repository") != expected_repository:
