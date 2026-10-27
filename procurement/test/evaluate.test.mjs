@@ -145,6 +145,15 @@ test("extra signed status fields and open gate-item schemas are rejected", () =>
   assert.ok(openItemsResult.trust.mismatches.some(item => item.key === "schema.properties.gates"));
 });
 
+test("gate entries cannot carry fields outside the signed schema", () => {
+  const extraEntry = structuredClone(status);
+  extraEntry.gates.E0 = { status: "READY", operatorNote: "not allowed" };
+  signStatus(extraEntry);
+  const result = evaluateProcurement({ operations, success, evidenceStatus: extraEntry, evidenceSchema });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.gates"));
+});
+
 test("gate aliases cannot substitute for the canonical gates field", () => {
   const aliased = { ...status, results: status.gates };
   delete aliased.gates;
