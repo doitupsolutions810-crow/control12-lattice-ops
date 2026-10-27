@@ -8,6 +8,7 @@ import {
   buildEvidenceStatus,
   sourceDigest,
   verifyEvidenceStatus,
+  verifyEvidenceSchema,
   CHECK_IDS,
   EVIDENCE_CONTRACT
 } from "../lib/contract.mjs";
@@ -66,6 +67,25 @@ test("builds a signed, fresh v5.4.0 status with a schema-bound E0-E6 contract", 
   assert.equal(schema.properties.gates.maxItems, 7);
   assert.deepEqual(CHECK_IDS, ["E0", "E1", "E2", "E3", "E4", "E5", "E6"]);
   assert.equal(EVIDENCE_CONTRACT.serverSideEvidenceStorage, false);
+});
+
+test("the producer schema independently enforces every source trust field", () => {
+  const schema = buildEvidenceSchema(fixtureEnv);
+  assert.equal(verifyEvidenceSchema(schema, { env: fixtureEnv }).valid, true);
+  const weakened = structuredClone(schema);
+  weakened.properties.sourceSignature = { type: "string" };
+  const result = verifyEvidenceSchema(weakened, { env: fixtureEnv });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes("schema_signature_rule_invalid"));
+});
+
+test("producer rejects timezone-free and impossible source timestamps", () => {
+  const status = buildEvidenceStatus({ env: fixtureEnv });
+  status.sourceGeneratedAt = "2026-10-27T00:00:00";
+  assert.ok(verifyEvidenceStatus(status, { env: fixtureEnv }).failures.includes("freshness_timestamps_invalid"));
+  const impossible = buildEvidenceStatus({ env: fixtureEnv });
+  impossible.sourceGeneratedAt = "2026-02-30T00:00:00Z";
+  assert.ok(verifyEvidenceStatus(impossible, { env: fixtureEnv }).failures.includes("freshness_timestamps_invalid"));
 });
 
 test("rejects a status mutation that is not re-digested and re-signed", () => {
