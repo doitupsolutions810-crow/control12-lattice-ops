@@ -101,6 +101,26 @@ test("producer schema rejects widened or extra fields and open gate-item schemas
   assert.ok(openItemsResult.failures.includes("schema_contract_check_gate_rules_invalid"));
 });
 
+test("fixed trust-property schemas reject extra JSON Schema keywords", () => {
+  const fixed = buildEvidenceSchema(fixtureEnv);
+  fixed.properties.version.not = {};
+  const fixedResult = verifyEvidenceSchema(fixed, { env: fixtureEnv });
+  assert.equal(fixedResult.valid, false);
+  assert.ok(fixedResult.failures.includes("schema_contract_field_invalid:version"));
+
+  const timestamp = buildEvidenceSchema(fixtureEnv);
+  timestamp.properties.sourceGeneratedAt.anyOf = [{ type: "string" }];
+  const timestampResult = verifyEvidenceSchema(timestamp, { env: fixtureEnv });
+  assert.equal(timestampResult.valid, false);
+  assert.ok(timestampResult.failures.includes("schema_timestamp_rule_invalid:sourceGeneratedAt"));
+
+  const digest = buildEvidenceSchema(fixtureEnv);
+  digest.properties.sourceEvidenceDigest.not = {};
+  const digestResult = verifyEvidenceSchema(digest, { env: fixtureEnv });
+  assert.equal(digestResult.valid, false);
+  assert.ok(digestResult.failures.includes("schema_digest_rule_invalid"));
+});
+
 test("producer verifier rejects unknown JSON Schema keywords at root and nested levels", () => {
   const schema = buildEvidenceSchema(fixtureEnv);
 
