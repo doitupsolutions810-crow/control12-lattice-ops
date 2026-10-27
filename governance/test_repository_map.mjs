@@ -208,6 +208,16 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "authoritative-g0-g6-producer-verification",
     "independent-signing-key-and-pinned-trust-anchor",
     "exact-head-end-to-end-test-run",
+    "versioned-g6-residual-measurement-schema-v1",
+    "measurement-st-topological-maps-to-consumer-residual-S",
+    "measurement-timestamp-maps-to-consumer-residual-measured-at",
+    "issuer-and-build-id-map-to-residual-provenance",
+    "source-commit-equals-successful-run-head-sha",
+    "canonical-json-sha256-and-ed25519-signature-verified",
+    "model-parameter-and-input-digest-reproduced",
+    "numerical-convergence-and-rigorous-error-bounds-validated",
+    "topological-mapping-valid-true",
+    "artifact-role-and-digest-binding-independently-verified",
   ]) {
     assert.ok(edge.requiredEvidence.includes(requirement), `missing G6 evidence requirement: ${requirement}`);
   }
