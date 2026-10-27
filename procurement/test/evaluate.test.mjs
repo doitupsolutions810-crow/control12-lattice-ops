@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { evaluateProcurement, fetchDocument } from "../evaluate.mjs";
 
 const trust = {
-  version: "5.3.1",
-  runtime: "static",
+  version: "5.4.0",
+  runtime: "read-only-dynamic",
   privacy: "local-only",
   mandatoryGates: 7,
   serverSideEvidenceStorage: false,
@@ -26,18 +27,67 @@ const success = {
   results: [{ id: "G0", status: "PASS" }]
 };
 
-const gateIds = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
-const status = {
-  ...trust,
-  overall: "READY",
-  gates: Object.fromEntries(gateIds.map(id => [id, "READY"]))
-};
+const gateIds = ["E0", "E1", "E2", "E3", "E4", "E5", "E6"];
+const oldKeyId = process.env.EVIDENCE_SOURCE_KEY_ID;
+const oldPublicKeyPem = process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+const { publicKey: fixturePublicKey, privateKey: fixturePrivateKey } = generateKeyPairSync("ed25519");
+const fixturePublicKeyPem = fixturePublicKey.export({ type: "spki", format: "pem" });
+process.env.EVIDENCE_SOURCE_KEY_ID = "fixture-key-1";
+process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM = fixturePublicKeyPem;
+test.after(() => {
+  if (oldKeyId === undefined) delete process.env.EVIDENCE_SOURCE_KEY_ID;
+  else process.env.EVIDENCE_SOURCE_KEY_ID = oldKeyId;
+  if (oldPublicKeyPem === undefined) delete process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+  else process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM = oldPublicKeyPem;
+});
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return "[" + value.map(item => item === undefined ? "null" : canonicalJson(item)).join(",") + "]";
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value).filter(key => value[key] !== undefined).sort()
+      .map(key => JSON.stringify(key) + ":" + canonicalJson(value[key])).join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function signStatus(value) {
+  delete value.sourceEvidenceDigest;
+  delete value.sourceSignature;
+  value.sourceEvidenceDigest = createHash("sha256").update(canonicalJson(value)).digest("hex");
+  const message = [
+    value.sourceIdentity, value.sourceKeyId, value.sourceGeneratedAt,
+    value.sourceExpiresAt, value.sourceEvidenceDigest
+  ].join("\\n");
+  value.sourceSignature = sign(null, Buffer.from(message), fixturePrivateKey).toString("base64");
+  return value;
+}
+
+function goodStatus(overrides = {}) {
+  return signStatus({
+    ...trust,
+    sourceIdentity: "control12-evidence-console",
+    sourceKeyId: "fixture-key-1",
+    sourceGeneratedAt: new Date().toISOString(),
+    sourceExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    overall: "READY",
+    gates: Object.fromEntries(gateIds.map(id => [id, "READY"])),
+    ...overrides
+  });
+}
+
+const status = goodStatus();
 const evidenceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
-  required: [...Object.keys(trust), "overall", "gates"],
+  required: [...Object.keys(trust), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest", "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"],
   properties: {
     ...Object.fromEntries(Object.entries(trust).map(([key, value]) => [key, { const: value }])),
+    sourceIdentity: { const: "control12-evidence-console" },
+    sourceKeyId: { const: "fixture-key-1" },
+    sourceEvidenceDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+    sourceSignature: { type: "string", pattern: "^[A-Za-z0-9+/]{86}==$" },
+    sourceGeneratedAt: { type: "string", format: "date-time" },
+    sourceExpiresAt: { type: "string", format: "date-time" },
     overall: { enum: ["READY", "HOLD"] },
     gates: {
       type: "object",
@@ -47,6 +97,58 @@ const evidenceSchema = {
     }
   }
 };
+
+test("status payload mutation after signing is rejected", () => {
+  const modified = { ...status, privacy: "remote-storage" };
+  const result = evaluateProcurement({ operations, success, evidenceStatus: modified, evidenceSchema });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.sourceEvidenceDigest"));
+});
+
+test("fresh-looking schema cannot compensate for stale signed source evidence", () => {
+  const stale = goodStatus({
+    sourceGeneratedAt: new Date(Date.now() - 6 * 60_000).toISOString(),
+    sourceExpiresAt: new Date(Date.now() + 30_000).toISOString()
+  });
+  const result = evaluateProcurement({ operations, success, evidenceStatus: stale, evidenceSchema });
+  assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(result.trust.mismatches.some(item => item.key === "status.sourceGeneratedAt"));
+});
+
+test("missing pinned source key configuration fails closed", () => {
+  const keyId = process.env.EVIDENCE_SOURCE_KEY_ID;
+  const keyPem = process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+  delete process.env.EVIDENCE_SOURCE_KEY_ID;
+  delete process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+  try {
+    const result = evaluateProcurement({ operations, success, evidenceStatus: goodStatus(), evidenceSchema });
+    assert.equal(result.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+    assert.ok(result.trust.mismatches.some(item => item.key === "sourceSignatureConfiguration"));
+  } finally {
+    process.env.EVIDENCE_SOURCE_KEY_ID = keyId;
+    process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM = keyPem;
+  }
+});
+
+test("weak or absent schema signature fields block procurement", () => {
+  const weak = structuredClone(evidenceSchema);
+  weak.properties.sourceSignature = { type: "string" };
+  const weakResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: weak });
+  assert.equal(weakResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(weakResult.trust.mismatches.some(item => item.key === "schema.properties.sourceSignature"));
+
+  const missing = structuredClone(evidenceSchema);
+  missing.required = missing.required.filter(key => key !== "sourceEvidenceDigest");
+  const missingResult = evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema: missing });
+  assert.equal(missingResult.procurementDecision, "HOLD_EVIDENCE_CONTROL");
+  assert.ok(missingResult.trust.mismatches.some(item => item.key === "schema.required.sourceEvidenceDigest"));
+});
+
+test("evidence-console contract checks use E0-E6 and do not replace production G0-G6", () => {
+  assert.deepEqual(Object.keys(status.gates).sort(), [...gateIds].sort());
+  assert.equal(success.results[0].id, "G0");
+  assert.equal(evaluateProcurement({ operations, success, evidenceStatus: status, evidenceSchema }).productionDecision, "NO_GO");
+});
 
 test("allows procurement while production remains disabled with paired valid trust documents", () => {
   const result = evaluateProcurement({
