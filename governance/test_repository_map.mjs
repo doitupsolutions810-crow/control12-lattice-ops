@@ -203,6 +203,7 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "same-build-and-immutable-artifact-digest",
     "source-issued-measured-at-freshness",
     "finite-residual-value-and-cone-policy",
+    "topology-derived-residual-domain-0-to-0.25",
     "no-default-zero-or-caller-supplied-value-as-observation",
     "authoritative-g0-g6-producer-verification",
     "independent-signing-key-and-pinned-trust-anchor",
