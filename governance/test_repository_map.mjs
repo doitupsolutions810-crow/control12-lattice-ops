@@ -210,6 +210,11 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "certified-curvature-and-metric-area-error-bounds-within-tolerance",
     "empirical-richardson-estimates-not-treated-as-rigorous",
     "numerical-certifier-identity-pinned-independent-of-receipt",
+    "numerical-convergence-and-certified-error-bounds-validated-from-independent-certificate",
+    "independent-numerical-certification-evidence-fetch-and-proof-digest-verified",
+    "numerical-certificate-source-commit-and-model-input-digest-bound",
+    "certificate-verifier-method-and-identity-pinned",
+    "model-g6-certification-eligibility-not-asserted-from-model-output",
     "no-default-zero-or-caller-supplied-value-as-observation",
     "authoritative-g0-g6-producer-verification",
     "independent-signing-key-and-pinned-trust-anchor",
@@ -221,7 +226,7 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "source-commit-equals-successful-run-head-sha",
     "canonical-json-sha256-and-ed25519-signature-verified",
     "model-parameter-and-input-digest-reproduced",
-    "numerical-convergence-and-rigorous-error-bounds-validated",
+    "numerical-convergence-and-certified-error-bounds-validated-from-independent-certificate",
     "topological-mapping-valid-true",
     "measurement-artifact-distinct-from-target-artifact",
     "measurement-build-id-distinct-from-target-build-id",
@@ -257,12 +262,18 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
       sourceCommitEqualsWorkflowHead: "source.commitSha must equal execution.headSha",
       measurementArtifactBinding: "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
       trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
+      numericalCertificationRequired: "A separate numericalCertification object is mandatory; model errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
+      numericalCertificationEvidenceVerified: "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
+      numericalCertificationClaimNotProof: "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion.",
     },
   });
   assert.match(baseline.g6ResidualMeasurementContract.mapping.measurementBuildIdDistinctFromTargetBuildId, /must not be assumed equal/);
   assert.match(baseline.g6ResidualMeasurementContract.mapping.targetBuildIdToResidualBuildId, /must equal final G0-G6 attestation.buildId/);
   assert.match(baseline.g6ResidualMeasurementContract.mapping.targetArtifactDigestToAcceptanceArtifact, /must equal final G0-G6 attestation.artifact.digest/);
   assert.match(baseline.g6ResidualMeasurementContract.mapping.measurementArtifactBinding, /never substitute it for targetArtifact.digest/);
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationRequired, /Richardson estimates as empirical only/i);
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationEvidenceVerified, /recompute proofDigest/i);
+  assert.match(baseline.g6ResidualMeasurementContract.mapping.numericalCertificationClaimNotProof, /verified=true is only a claim/i);
 
   const changed = structuredClone(baseline);
   changed.g6ResidualMeasurementContract.schemaBlobSha = "f".repeat(40);
