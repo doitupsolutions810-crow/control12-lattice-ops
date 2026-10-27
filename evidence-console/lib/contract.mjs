@@ -26,6 +26,12 @@ const SIGNATURE_PATTERN = "^[A-Za-z0-9+/]{86}==$";
 const DIGEST_PATTERN = "^[a-f0-9]{64}$";
 const SOURCE_TIMESTAMP_PATTERN = /^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:[.][0-9]{1,3})?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$/;
 
+function hasExactKeys(value, expected) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const actual = Object.keys(value);
+  return actual.length === expected.length && expected.every(key => Object.prototype.hasOwnProperty.call(value, key));
+}
+
 function parseSourceTimestamp(value) {
   if (typeof value !== "string" || !SOURCE_TIMESTAMP_PATTERN.test(value)) return NaN;
   const parsed = Date.parse(value);
@@ -154,7 +160,8 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
     return { valid: false, failures: ["schema_not_object"] };
   }
-  if (schema.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
+  if (!hasExactKeys(schema, ["$schema", "type", "additionalProperties", "required", "properties"]) ||
+      schema.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
       schema.type !== "object" || schema.additionalProperties !== false) {
     failures.push("schema_root_contract_invalid");
   }
@@ -193,8 +200,10 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
       !schema.required.every(key => expectedFieldSet.has(key))) {
     failures.push("schema_required_fields_invalid");
   }
-  if (!gates || gates.type !== "array" || gates.minItems !== 7 || gates.maxItems !== 7 ||
-      gates.uniqueItems !== true || !gates.items || gates.items.type !== "object" ||
+  if (!hasExactKeys(gates, ["type", "minItems", "maxItems", "uniqueItems", "allOf", "items"]) ||
+      !gates || gates.type !== "array" || gates.minItems !== 7 || gates.maxItems !== 7 ||
+      gates.uniqueItems !== true || !hasExactKeys(gates.items, ["type", "additionalProperties", "required", "properties"]) ||
+      !gates.items || gates.items.type !== "object" ||
       gates.items.additionalProperties !== false ||
       !Array.isArray(gates.items.required) || gates.items.required.length !== 2 ||
       new Set(gates.items.required).size !== 2 ||
@@ -202,15 +211,22 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
       !gates.items.properties || Object.keys(gates.items.properties).length !== 2 ||
       !Object.prototype.hasOwnProperty.call(gates.items.properties, "id") ||
       !Object.prototype.hasOwnProperty.call(gates.items.properties, "status") ||
+      !hasExactKeys(gates.items.properties.id, ["enum"]) ||
+      !hasExactKeys(gates.items.properties.status, ["const"]) ||
       !Array.isArray(gates.items.properties?.id?.enum) ||
       gates.items.properties.id.enum.length !== CHECK_IDS.length ||
       !CHECK_IDS.every(id => gates.items.properties.id.enum.includes(id)) ||
       gates.items.properties?.status?.const !== "READY" ||
       !Array.isArray(gates.allOf) || gates.allOf.length !== CHECK_IDS.length ||
-      !CHECK_IDS.every(id => gates.allOf.some(rule =>
-        rule?.contains?.properties?.id?.const === id &&
-        Array.isArray(rule.contains.required) && rule.contains.required.includes("id") &&
-        rule.minContains === 1 && rule.maxContains === 1))) {
+      !gates.allOf.every(rule => hasExactKeys(rule, ["contains", "minContains", "maxContains"]) &&
+        hasExactKeys(rule.contains, ["type", "required", "properties"]) &&
+        rule.contains.type === "object" &&
+        Array.isArray(rule.contains.required) && rule.contains.required.length === 1 && rule.contains.required[0] === "id" &&
+        hasExactKeys(rule.contains.properties, ["id"]) &&
+        hasExactKeys(rule.contains.properties.id, ["const"]) &&
+        CHECK_IDS.includes(rule.contains.properties.id.const) &&
+        rule.minContains === 1 && rule.maxContains === 1) ||
+      !CHECK_IDS.every(id => gates.allOf.some(rule => rule.contains.properties.id.const === id))) {
     failures.push("schema_contract_check_gate_rules_invalid");
   }
   return { valid: failures.length === 0, failures };
