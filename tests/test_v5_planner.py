@@ -9,6 +9,8 @@ def load_planner():
     spec = spec_from_file_location("control12_v5_planner", path)
     module = module_from_spec(spec)
     assert spec and spec.loader
+    import sys
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
