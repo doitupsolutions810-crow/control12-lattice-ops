@@ -170,20 +170,33 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
     return { valid: false, failures: [...failures, "schema_properties_invalid"] };
   }
   for (const [key, value] of Object.entries(EVIDENCE_CONTRACT)) {
-    if (properties[key]?.const !== value) failures.push("schema_contract_field_invalid:" + key);
+    if (!hasExactKeys(properties[key], ["const"]) || properties[key].const !== value) {
+      failures.push("schema_contract_field_invalid:" + key);
+    }
   }
-  if (properties.sourceIdentity?.const !== SOURCE_IDENTITY) failures.push("schema_source_identity_invalid");
-  if (properties.sourceKeyId?.const !== keyId) failures.push("schema_source_key_id_invalid");
-  if (properties.sourceEvidenceDigest?.type !== "string" ||
-      properties.sourceEvidenceDigest.pattern !== DIGEST_PATTERN) failures.push("schema_digest_rule_invalid");
-  if (properties.sourceSignature?.type !== "string" ||
-      properties.sourceSignature.pattern !== SIGNATURE_PATTERN) failures.push("schema_signature_rule_invalid");
+  if (!hasExactKeys(properties.sourceIdentity, ["const"]) || properties.sourceIdentity.const !== SOURCE_IDENTITY) {
+    failures.push("schema_source_identity_invalid");
+  }
+  if (!hasExactKeys(properties.sourceKeyId, ["const"]) || properties.sourceKeyId.const !== keyId) {
+    failures.push("schema_source_key_id_invalid");
+  }
+  if (!hasExactKeys(properties.sourceEvidenceDigest, ["type", "pattern"]) ||
+      properties.sourceEvidenceDigest.type !== "string" || properties.sourceEvidenceDigest.pattern !== DIGEST_PATTERN) {
+    failures.push("schema_digest_rule_invalid");
+  }
+  if (!hasExactKeys(properties.sourceSignature, ["type", "pattern"]) ||
+      properties.sourceSignature.type !== "string" || properties.sourceSignature.pattern !== SIGNATURE_PATTERN) {
+    failures.push("schema_signature_rule_invalid");
+  }
   for (const key of ["sourceGeneratedAt", "sourceExpiresAt"]) {
-    if (properties[key]?.type !== "string" || properties[key].format !== "date-time") {
+    if (!hasExactKeys(properties[key], ["type", "format"]) ||
+        properties[key].type !== "string" || properties[key].format !== "date-time") {
       failures.push("schema_timestamp_rule_invalid:" + key);
     }
   }
-  if (properties.overall?.const !== "READY") failures.push("schema_overall_rule_invalid");
+  if (!hasExactKeys(properties.overall, ["const"]) || properties.overall.const !== "READY") {
+    failures.push("schema_overall_rule_invalid");
+  }
   const gates = properties.gates;
   const expectedFields = [
     ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
