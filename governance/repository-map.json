@@ -363,7 +363,7 @@
     {
       "from": "great-scale",
       "to": "living-intermediate-control-plane",
-      "contract": "Versioned G6 numerical measurement receipt binds the Great Scale measurement build, model artifact and successful run separately from the target Control Plane source revision, target build ID and target artifact digest. The receipt remains schema-only; the G0-G6 producer must independently verify the signature, source/run evidence, model inputs, numerical diagnostics and exact target build/artifact mapping before mapping S into residual.",
+      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's model exports Richardson-style empirical estimates, not a rigorous error certificate; G6 requires a separate independently verified interval-enclosure or analytic-derivative-bound certificate with source/input binding and certified error upper bounds within tolerance. The residual libraries are not live production measurement endpoints.",
       "verificationStatus": "proposed-not-verified",
       "requiredEvidence": [
         "exact-commit-sha",
@@ -407,7 +407,13 @@
         "independent-numerical-certificate-verified",
         "numerical-certificate-source-commit-and-model-input-digest-bound",
         "numerical-certificate-upper-bounds-and-proof-digest-verified",
-        "quadrature-rigorous-certificate-distinct-from-empirical-estimates"
+        "quadrature-rigorous-certificate-distinct-from-empirical-estimates",
+        "richardson-estimates-explicitly-classified-as-empirical-not-rigorous",
+        "independent-interval-enclosure-or-analytic-derivative-bound-certificate",
+        "certificate-source-sha-and-model-input-digest-match",
+        "certified-curvature-and-metric-area-error-upper-bounds-within-tolerance",
+        "certificate-evidence-url-and-proof-digest-independently-validated",
+        "raw-model-output-alone-is-not-g6-eligible"
       ]
     },
     {
