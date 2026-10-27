@@ -218,6 +218,10 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "numerical-convergence-and-rigorous-error-bounds-validated",
     "topological-mapping-valid-true",
     "artifact-role-and-digest-binding-independently-verified",
+    "shared-composite-release-build-id-or-explicit-versioned-source-target-build-binding",
+    "g6-measurement-build-id-equals-final-g0-g6-build-id",
+    "great-scale-model-artifact-digest-distinct-from-control-plane-artifact-digest",
+    "both-source-model-commit-and-consumer-release-commit-pinned",
   ]) {
     assert.ok(edge.requiredEvidence.includes(requirement), `missing G6 evidence requirement: ${requirement}`);
   }
@@ -235,9 +239,9 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
       measurementSTopologicalToResidualS: "measurement.STopological -> residual.S",
       measuredAtToResidualMeasuredAt: "measuredAt -> residual.measuredAt",
       issuerToResidualSourceId: "issuer -> residual.sourceId",
-      buildIdToResidualBuildId: "buildId -> residual.buildId",
+      buildIdToResidualBuildId: "buildId must equal residual.buildId and the G0-G6 attestation buildId; it must be a shared composite release ID binding the Great Scale model run/artifact and Control Plane target build. If independent per-repository build IDs are used, v1 is insufficient and requires a versioned sourceBuildId/acceptanceBuildId contract.",
       sourceCommitEqualsWorkflowHead: "source.commitSha must equal execution.headSha",
-      artifactBinding: "artifact.digest and model.inputDigest must be verified against the intended source/build/artifact scope",
+      artifactBinding: "artifact.digest identifies the Great Scale model artifact and model.inputDigest binds its inputs; verify both independently and never substitute either for the Control Plane acceptance artifact digest.",
       trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
     },
   });
@@ -249,4 +253,8 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   const falselyPromoted = structuredClone(baseline);
   falselyPromoted.g6ResidualMeasurementContract.status = "verified";
   assert.ok(validateRepositoryMap(falselyPromoted).some(message => message.includes("g6ResidualMeasurementContract")));
+
+  const ambiguousBuildId = structuredClone(baseline);
+  ambiguousBuildId.g6ResidualMeasurementContract.mapping.buildIdToResidualBuildId = "buildId -> residual.buildId";
+  assert.ok(validateRepositoryMap(ambiguousBuildId).some(message => message.includes("g6ResidualMeasurementContract")));
 });
