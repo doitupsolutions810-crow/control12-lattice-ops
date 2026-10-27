@@ -363,7 +363,7 @@
     {
       "from": "great-scale",
       "to": "living-intermediate-control-plane",
-      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's residual modules are calculation libraries, not live production measurement endpoints; the G6 producer must bind a fresh same-build observation to model parameters, the signed/absolute curvature tuple, numerical convergence diagnostics, immutable input/output digests, and an independently pinned trust anchor. The proposed receipt schema is contracts/g6-residual-measurement/v1.schema.json (blob a0956c825e9a8974f5855054d2c80eb4433391f9); it maps measurement.STopological to downstream residual.S and measuredAt to residual.measuredAt, but has no live producer/verifier endpoint.",
+      "contract": "Versioned G6 numerical measurement receipt binds the Great Scale measurement build, model artifact and successful run separately from the target Control Plane source revision, target build ID and target artifact digest. The receipt remains schema-only; the G0-G6 producer must independently verify the signature, source/run evidence, model inputs, numerical diagnostics and exact target build/artifact mapping before mapping S into residual.",
       "verificationStatus": "proposed-not-verified",
       "requiredEvidence": [
         "exact-commit-sha",
@@ -373,7 +373,6 @@
         "great-scale-source-commit-sha",
         "control-plane-consumer-commit-sha",
         "live-measurement-source-identity",
-        "same-build-and-immutable-artifact-digest",
         "source-issued-measured-at-freshness",
         "finite-residual-value-and-cone-policy",
         "no-default-zero-or-caller-supplied-value-as-observation",
@@ -390,20 +389,22 @@
         "quadrature-refinement-and-grid-origin-discrepancies",
         "finite-error-bounds-and-configured-tolerance",
         "topological-mapping-valid-true",
-        "source-commit-and-input-output-artifact-digests",
         "versioned-g6-residual-measurement-schema-v1",
         "measurement-st-topological-maps-to-consumer-residual-S",
         "measurement-timestamp-maps-to-consumer-residual-measured-at",
-        "issuer-and-build-id-map-to-residual-provenance",
         "source-commit-equals-successful-run-head-sha",
         "canonical-json-sha256-and-ed25519-signature-verified",
         "model-parameter-and-input-digest-reproduced",
         "numerical-convergence-and-rigorous-error-bounds-validated",
-        "artifact-role-and-digest-binding-independently-verified",
         "shared-composite-release-build-id-or-explicit-versioned-source-target-build-binding",
         "g6-measurement-build-id-equals-final-g0-g6-build-id",
         "great-scale-model-artifact-digest-distinct-from-control-plane-artifact-digest",
-        "both-source-model-commit-and-consumer-release-commit-pinned"
+        "both-source-model-commit-and-consumer-release-commit-pinned",
+        "measurement-build-id-distinct-from-target-build-id",
+        "target-build-id-matches-g0-g6-attestation-build-id",
+        "target-commit-matches-g0-g6-attestation-source-commit",
+        "target-artifact-digest-matches-g0-g6-attestation-artifact-digest",
+        "measurement-artifact-distinct-from-target-artifact"
       ]
     },
     {
@@ -532,16 +533,19 @@
   "g6ResidualMeasurementContract": {
     "repository": "great-scale",
     "path": "contracts/g6-residual-measurement/v1.schema.json",
-    "schemaBlobSha": "5322c32362ff42b5e251672d0b5ac9c61ae106a5",
+    "schemaBlobSha": "002c4abb141833e1361fa96d36474dece1a77ad1",
     "version": "v1",
     "status": "schema-only-not-producer",
     "mapping": {
       "measurementSTopologicalToResidualS": "measurement.STopological -> residual.S",
       "measuredAtToResidualMeasuredAt": "measuredAt -> residual.measuredAt",
       "issuerToResidualSourceId": "issuer -> residual.sourceId",
-      "buildIdToResidualBuildId": "buildId must equal residual.buildId and the G0-G6 attestation buildId; it must be a shared composite release ID binding the Great Scale model run/artifact and Control Plane target build. If independent per-repository build IDs are used, v1 is insufficient and requires a versioned sourceBuildId/acceptanceBuildId contract.",
+      "measurementBuildIdDistinctFromTargetBuildId": "measurementBuildId identifies the Great Scale measurement build; targetBuildId identifies the Control Plane acceptance build. These are independent identities and must not be assumed equal.",
+      "targetBuildIdToResidualBuildId": "targetBuildId must equal final G0-G6 attestation.buildId and becomes residual.buildId.",
+      "targetSourceRevisionToAttestationSource": "target.repository/commitSha must equal final G0-G6 attestation.source.repository/commitSha.",
+      "targetArtifactDigestToAcceptanceArtifact": "targetArtifact.digest must equal final G0-G6 attestation.artifact.digest.",
       "sourceCommitEqualsWorkflowHead": "source.commitSha must equal execution.headSha",
-      "artifactBinding": "artifact.digest identifies the Great Scale model artifact and model.inputDigest binds its inputs; verify both independently and never substitute either for the Control Plane acceptance artifact digest.",
+      "measurementArtifactBinding": "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
       "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor"
     }
   }
