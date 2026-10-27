@@ -363,13 +363,23 @@
     {
       "from": "great-scale",
       "to": "living-intermediate-control-plane",
-      "contract": "Versioned mathematical/model evidence bound to an exact source revision",
+      "contract": "Versioned mathematical/model evidence bound to exact source revisions. A Great Scale residual calculation is a numeric model output, not a live production measurement or acceptance attestation. G6 requires a trusted, fresh, same-build/source residual observation.",
       "verificationStatus": "proposed-not-verified",
       "requiredEvidence": [
         "exact-commit-sha",
         "executed-test-or-workflow-run",
         "observed-result",
-        "authority-and-provenance-check"
+        "authority-and-provenance-check",
+        "great-scale-source-commit-sha",
+        "control-plane-consumer-commit-sha",
+        "live-measurement-source-identity",
+        "same-build-and-immutable-artifact-digest",
+        "source-issued-measured-at-freshness",
+        "finite-residual-value-and-cone-policy",
+        "no-default-zero-or-caller-supplied-value-as-observation",
+        "authoritative-g0-g6-producer-verification",
+        "independent-signing-key-and-pinned-trust-anchor",
+        "exact-head-end-to-end-test-run"
       ]
     },
     {
