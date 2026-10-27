@@ -212,3 +212,31 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     assert.ok(edge.requiredEvidence.includes(requirement), `missing G6 evidence requirement: ${requirement}`);
   }
 });
+
+
+test("private registry pins the public G6 receipt schema and its non-authorizing mapping", () => {
+  assert.deepEqual(baseline.g6ResidualMeasurementContract, {
+    repository: "great-scale",
+    path: "contracts/g6-residual-measurement/v1.schema.json",
+    schemaBlobSha: "a0956c825e9a8974f5855054d2c80eb4433391f9",
+    version: "v1",
+    status: "schema-only-not-producer",
+    mapping: {
+      measurementSTopologicalToResidualS: "measurement.STopological -> residual.S",
+      measuredAtToResidualMeasuredAt: "measuredAt -> residual.measuredAt",
+      issuerToResidualSourceId: "issuer -> residual.sourceId",
+      buildIdToResidualBuildId: "buildId -> residual.buildId",
+      sourceCommitEqualsWorkflowHead: "source.commitSha must equal execution.headSha",
+      artifactBinding: "artifact.digest and model.inputDigest must be verified against the intended source/build/artifact scope",
+      trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
+    },
+  });
+
+  const changed = structuredClone(baseline);
+  changed.g6ResidualMeasurementContract.schemaBlobSha = "f".repeat(40);
+  assert.ok(validateRepositoryMap(changed).some(message => message.includes("g6ResidualMeasurementContract")));
+
+  const falselyPromoted = structuredClone(baseline);
+  falselyPromoted.g6ResidualMeasurementContract.status = "verified";
+  assert.ok(validateRepositoryMap(falselyPromoted).some(message => message.includes("g6ResidualMeasurementContract")));
+});
