@@ -396,15 +396,14 @@
         "canonical-json-sha256-and-ed25519-signature-verified",
         "model-parameter-and-input-digest-reproduced",
         "numerical-convergence-and-rigorous-error-bounds-validated",
-        "shared-composite-release-build-id-or-explicit-versioned-source-target-build-binding",
-        "g6-measurement-build-id-equals-final-g0-g6-build-id",
-        "great-scale-model-artifact-digest-distinct-from-control-plane-artifact-digest",
         "both-source-model-commit-and-consumer-release-commit-pinned",
         "measurement-build-id-distinct-from-target-build-id",
         "target-build-id-matches-g0-g6-attestation-build-id",
         "target-commit-matches-g0-g6-attestation-source-commit",
         "target-artifact-digest-matches-g0-g6-attestation-artifact-digest",
-        "measurement-artifact-distinct-from-target-artifact"
+        "measurement-artifact-distinct-from-target-artifact",
+        "target-build-and-target-artifact-digest-binding",
+        "issuer-and-target-build-id-map-to-residual-provenance"
       ]
     },
     {
