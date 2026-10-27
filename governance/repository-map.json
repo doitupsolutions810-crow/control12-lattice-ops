@@ -423,7 +423,12 @@
         "certificate-source-commit-and-model-input-digest-match",
         "certificate-proof-artifact-digest-verified",
         "empirical-richardson-estimates-not-treated-as-rigorous",
-        "numerical-certifier-identity-pinned-independent-of-receipt"
+        "numerical-certifier-identity-pinned-independent-of-receipt",
+        "numerical-certification-certificate-signature-verified-under-independent-key",
+        "numerical-certification-key-id-pinned-separately-from-receipt-key",
+        "numerical-certification-generated-at-expires-at-freshness-validated",
+        "numerical-certification-proof-digest-matches-downloaded-evidence",
+        "numerical-certification-bounds-within-measurement-tolerance"
       ]
     },
     {
@@ -552,7 +557,7 @@
   "g6ResidualMeasurementContract": {
     "repository": "great-scale",
     "path": "contracts/g6-residual-measurement/v1.schema.json",
-    "schemaBlobSha": "89ed8276ea7ba4d65fa9b416a960ad5acba296d2",
+    "schemaBlobSha": "b4d59db4cda7a53d82bdfc9333ad504a864f9cf5",
     "version": "v1",
     "status": "schema-only-not-producer",
     "mapping": {
@@ -566,9 +571,10 @@
       "sourceCommitEqualsWorkflowHead": "source.commitSha must equal execution.headSha",
       "measurementArtifactBinding": "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
       "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
-      "numericalCertificationRequired": "A separate numericalCertification object is mandatory; model errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
-      "numericalCertificationEvidenceVerified": "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
-      "numericalCertificationClaimNotProof": "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion."
+      "numericalCertificationRequired": "A separate numericalCertification object is mandatory; errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
+      "numericalCertificationEvidenceVerified": "Independently fetch and validate numericalCertification.evidenceUrl; recompute proofDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified upper bounds <= measurement.quadratureTolerance.",
+      "numericalCertificationClaimNotProof": "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion.",
+      "numericalCertificationTrustAnchorSeparate": "certificateKeyId and certificateSignature must verify under a separately configured, independently pinned numerical-certificate public key; do not treat the outer G6 receipt signature as proof of the certificate."
     }
   }
 }
