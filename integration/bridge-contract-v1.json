@@ -1,0 +1,212 @@
+{
+  "contract_version": "control12.bridge-contract/v1",
+  "system_name": "Governed Autonomous Operations Fabric",
+  "purpose": "Track intended cross-repository interfaces, their required trust boundaries, verification evidence, and blocking gaps. Registry status is authoritative only as a planning record; it does not itself prove runtime connectivity.",
+  "status_vocabulary": [
+    "proposed",
+    "implemented_unverified",
+    "verified"
+  ],
+  "promotion_rule": "An interface may become verified only with exact producer and consumer revisions, an executed integration test, a correlated request_id, a validated receipt/artifact digest, and inspectable test logs. Documentation or endpoint reachability alone is insufficient.",
+  "interfaces": [
+    {
+      "id": "intent-plan",
+      "producer": "control12-workspace",
+      "consumer": "control12-lattice-ops",
+      "purpose": "Convert authenticated user intent into a typed constrained plan.",
+      "status": "proposed",
+      "criticality": "high",
+      "required_evidence": [
+        "authenticated caller identity",
+        "validated intent schema",
+        "plan id and version",
+        "policy decision",
+        "negative test for invalid constraints"
+      ],
+      "gaps": [
+        "Default-branch workspace routes require authentication review; draft PR #7 is not merged.",
+        "Planner must reject invalid or unsupported constraint values, not merely echo them."
+      ],
+      "acceptance_test": "Unauthenticated intent submission is rejected; invalid constraints fail closed; valid plan binds caller, request, policy and immutable plan version."
+    },
+    {
+      "id": "plan-authority",
+      "producer": "control12-lattice-ops",
+      "consumer": "capability-authority;capability-plane",
+      "purpose": "Authorize each planned action using scoped capabilities.",
+      "status": "proposed",
+      "criticality": "critical",
+      "required_evidence": [
+        "canonical action/resource/method tuple",
+        "trusted issuer and key identity",
+        "policy version",
+        "denial receipt for unauthorized action"
+      ],
+      "gaps": [
+        "Capability verification must compare method as well as type and resource.",
+        "Cross-repository canonicalization needs shared test vectors for Unicode, escaping and numbers."
+      ],
+      "acceptance_test": "Read-only capability cannot authorize delete/execute; expired, revoked, wrong-resource and wrong-method capabilities fail."
+    },
+    {
+      "id": "authority-execution",
+      "producer": "capability-authority",
+      "consumer": "CycleKernal;swarm-vm-runner",
+      "purpose": "Pass a scoped, short-lived authorization to an isolated executor.",
+      "status": "proposed",
+      "criticality": "critical",
+      "required_evidence": [
+        "signed scoped capability",
+        "worker identity",
+        "assigned step/role",
+        "sandbox identity",
+        "correlated operation id"
+      ],
+      "gaps": [
+        "CycleKernal terminal uses shell execution without demonstrated strong sandboxing.",
+        "Swarm event endpoint needs authenticated worker identity and strict role/step transition checks."
+      ],
+      "acceptance_test": "Unauthenticated request and forged worker event cannot execute or mark a job complete; forbidden command and host access tests fail safely."
+    },
+    {
+      "id": "execution-receipt",
+      "producer": "CycleKernal;swarm-vm-runner",
+      "consumer": "living-intermediate-control-plane",
+      "purpose": "Produce a trustworthy receipt for actual execution and output artifacts.",
+      "status": "proposed",
+      "criticality": "critical",
+      "required_evidence": [
+        "actual execution mode",
+        "worker receipt",
+        "source revision",
+        "artifact digest",
+        "start/end timestamps",
+        "issuer signature",
+        "request id"
+      ],
+      "gaps": [
+        "Simulation and real execution must be separate explicit modes.",
+        "A status/event message alone is not proof of work; receipt must bind output bytes and worker identity."
+      ],
+      "acceptance_test": "Simulation, missing receipt, altered artifact, wrong revision, forged event and expired receipt all fail acceptance."
+    },
+    {
+      "id": "evidence-ledger",
+      "producer": "living-intermediate-control-plane",
+      "consumer": "control12-lattice-ops:operation-ledger-v1",
+      "purpose": "Persist verifier decisions with idempotent audit history.",
+      "status": "implemented_unverified",
+      "criticality": "high",
+      "required_evidence": [
+        "evidence verifier result",
+        "request/evidence idempotency key",
+        "ledger receipt",
+        "valid hash-chain check"
+      ],
+      "gaps": [
+        "New gate and ledger are draft PRs #34 and #35; stacked changes are not merged.",
+        "Ledger needs a production shared transactional store and independently anchored chain head for multi-host/privileged-tamper threat model."
+      ],
+      "acceptance_test": "Same request/evidence retry returns same receipt; conflicting retry is rejected; tampering breaks chain verification."
+    },
+    {
+      "id": "ledger-promotion",
+      "producer": "control12-lattice-ops:operation-ledger-v1",
+      "consumer": "release-admission-gate",
+      "purpose": "Allow promotion only when evidence, policy and artifact identity all satisfy release criteria.",
+      "status": "proposed",
+      "criticality": "critical",
+      "required_evidence": [
+        "ledger chain verification",
+        "trusted signature validation",
+        "immutable artifact digest",
+        "policy result",
+        "required independent approvals"
+      ],
+      "gaps": [
+        "The evidence gate intentionally never authorizes production.",
+        "No universal promotion adapter is wired into all consumers."
+      ],
+      "acceptance_test": "Missing, stale, simulated, unsigned, replayed or mismatched evidence blocks promotion; accepted evidence alone does not bypass authorization."
+    },
+    {
+      "id": "math-measurement",
+      "producer": "great-scale",
+      "consumer": "living-intermediate-control-plane",
+      "purpose": "Publish versioned numerical diagnostics with method, assumptions and uncertainty.",
+      "status": "proposed",
+      "criticality": "high",
+      "required_evidence": [
+        "model/source revision",
+        "input dataset digest",
+        "solver/version",
+        "grid and tolerance",
+        "residual/error estimate",
+        "certificate class"
+      ],
+      "gaps": [
+        "Numerical estimate must not be labeled rigorous certification without a validated bound.",
+        "Model output is diagnostic evidence, not execution or production authorization."
+      ],
+      "acceptance_test": "Uncertified estimates are labelled estimates; malformed inputs and unmet convergence criteria cannot yield a certified PASS."
+    },
+    {
+      "id": "model-planning",
+      "producer": "TrainLLM;LLM-RE-KnowledgeBase-Agent",
+      "consumer": "control12-lattice-ops",
+      "purpose": "Provide suggestions and source-attributed knowledge to planning without granting authority.",
+      "status": "proposed",
+      "criticality": "high",
+      "required_evidence": [
+        "source citation/provenance class",
+        "model and prompt version",
+        "uncertainty/unknown state",
+        "human or policy decision"
+      ],
+      "gaps": [
+        "TrainLLM token issuance and route-level authentication require remediation.",
+        "Knowledge classifications must remain distinct from cryptographic verification."
+      ],
+      "acceptance_test": "Unverified model claims cannot mint capability or directly trigger production actions; source/version uncertainty is preserved."
+    },
+    {
+      "id": "artifact-provenance",
+      "producer": "control12-lattice-ops build pipeline",
+      "consumer": "capability-authority;release-admission-gate",
+      "purpose": "Bind immutable image/build output to source, builder, SBOM, provenance and signature.",
+      "status": "proposed",
+      "criticality": "critical",
+      "required_evidence": [
+        "source commit",
+        "artifact digest",
+        "SBOM",
+        "build provenance",
+        "trusted signature",
+        "verification result"
+      ],
+      "gaps": [
+        "Current publishing script permits unsigned output when COSIGN_KEY is absent.",
+        "Builder backends need equivalent required provenance or must be blocked for production."
+      ],
+      "acceptance_test": "Unsigned, untrusted, source-mismatched or provenance-incomplete artifacts cannot be admitted."
+    },
+    {
+      "id": "ssrf-enrichment",
+      "producer": "local-creator-radar outbound enrichment",
+      "consumer": "external web targets",
+      "purpose": "Fetch bounded public metadata without reaching private infrastructure.",
+      "status": "proposed",
+      "criticality": "high",
+      "required_evidence": [
+        "validated URL",
+        "public IP resolution",
+        "redirect-by-redirect validation",
+        "egress policy decision"
+      ],
+      "gaps": [
+        "Hostname shape checks alone do not establish publicly routable destination; DNS rebinding and private/link-local destinations need protection."
+      ],
+      "acceptance_test": "Loopback, private, link-local, metadata IP, DNS rebinding and redirect-to-private targets are blocked."
+    }
+  ]
+}
