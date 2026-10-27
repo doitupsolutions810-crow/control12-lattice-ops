@@ -1,3 +1,5 @@
+import { createHash, createPublicKey, verify as verifySignature } from 'node:crypto';
+
 const DEFAULT_ENDPOINTS = Object.freeze({
   operations: "https://control12-operations-plane.vercel.app/api/v1/operations/readiness",
   success: "https://control12-success-plane.vercel.app/api/v1/success/live",
@@ -6,8 +8,8 @@ const DEFAULT_ENDPOINTS = Object.freeze({
 });
 
 const EXPECTED_TRUST = Object.freeze({
-  version: "5.3.1",
-  runtime: "static",
+  version: "5.4.0",
+  runtime: "read-only-dynamic",
   privacy: "local-only",
   mandatoryGates: 7,
   serverSideEvidenceStorage: false,
@@ -18,8 +20,103 @@ const EXPECTED_TRUST = Object.freeze({
 });
 
 const STATUS_SCHEMA_URI = "https://json-schema.org/draft/2020-12/schema";
-const EXPECTED_GATE_IDS = Object.freeze(["G0", "G1", "G2", "G3", "G4", "G5", "G6"]);
-const EXPECTED_GATE_IDS = Object.freeze(["G0", "G1", "G2", "G3", "G4", "G5", "G6"]);
+const SOURCE_IDENTITY = "control12-evidence-console";
+const SOURCE_ATTESTATION_FIELDS = Object.freeze([
+  "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest", "sourceSignature"
+]);
+const EXPECTED_GATE_IDS = Object.freeze(["E0", "E1", "E2", "E3", "E4", "E5", "E6"]);
+const MAX_EVIDENCE_AGE_MS = 5 * 60 * 1000;
+const MAX_CLOCK_SKEW_MS = 30 * 1000;
+const SOURCE_TIMESTAMP_PATTERN = /^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:[.][0-9]{1,3})?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$/;
+
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return '[' + value.map(item => item === undefined ? 'null' : canonicalJson(item)).join(',') + ']';
+  }
+  if (value && typeof value === "object") {
+    return '{' + Object.keys(value).filter(key => value[key] !== undefined).sort()
+      .map(key => JSON.stringify(key) + ':' + canonicalJson(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function sourceDigest(statusDocument) {
+  const unsigned = { ...statusDocument };
+  delete unsigned.sourceEvidenceDigest;
+  delete unsigned.sourceSignature;
+  return createHash("sha256").update(canonicalJson(unsigned)).digest("hex");
+}
+
+function parseSourceTimestamp(value) {
+  if (typeof value !== "string" || !SOURCE_TIMESTAMP_PATTERN.test(value)) return NaN;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return NaN;
+  const datePart = value.slice(0, 10);
+  const calendarDate = Date.parse(datePart + "T00:00:00Z");
+  if (!Number.isFinite(calendarDate) ||
+      new Date(calendarDate).toISOString().slice(0, 10) !== datePart) return NaN;
+  return parsed;
+}
+
+function verifySignedFreshness(statusDocument, add) {
+  const now = Date.now();
+  const generated = parseSourceTimestamp(statusDocument.sourceGeneratedAt);
+  const expires = parseSourceTimestamp(statusDocument.sourceExpiresAt);
+  if (!Number.isFinite(generated) || !Number.isFinite(expires)) {
+    add("status.sourceFreshness", "valid source-issued ISO timestamps", {
+      sourceGeneratedAt: statusDocument.sourceGeneratedAt,
+      sourceExpiresAt: statusDocument.sourceExpiresAt
+    });
+  } else {
+    if (generated > now + MAX_CLOCK_SKEW_MS) add("status.sourceGeneratedAt", "not beyond 30s future skew", statusDocument.sourceGeneratedAt);
+    if (now - generated > MAX_EVIDENCE_AGE_MS) add("status.sourceGeneratedAt", "no older than 5 minutes", statusDocument.sourceGeneratedAt);
+    if (expires <= now) add("status.sourceExpiresAt", "later than current time", statusDocument.sourceExpiresAt);
+    if (expires <= generated || expires - generated > MAX_EVIDENCE_AGE_MS) {
+      add("status.sourceExpiresAt", "validity interval <= 5 minutes", statusDocument.sourceExpiresAt);
+    }
+  }
+
+  if (statusDocument.sourceIdentity !== SOURCE_IDENTITY) {
+    add("status.sourceIdentity", SOURCE_IDENTITY, statusDocument.sourceIdentity);
+  }
+  const keyId = process.env.EVIDENCE_SOURCE_KEY_ID;
+  const publicKeyPem = process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+  if (!keyId || !publicKeyPem) {
+    add("sourceSignatureConfiguration", "pinned EVIDENCE_SOURCE_KEY_ID and EVIDENCE_SOURCE_PUBLIC_KEY_PEM", "missing");
+    return;
+  }
+  if (statusDocument.sourceKeyId !== keyId) {
+    add("status.sourceKeyId", keyId, statusDocument.sourceKeyId);
+  }
+  const expectedDigest = sourceDigest(statusDocument);
+  if (typeof statusDocument.sourceEvidenceDigest !== "string" ||
+      !/^[a-f0-9]{64}$/.test(statusDocument.sourceEvidenceDigest) ||
+      statusDocument.sourceEvidenceDigest !== expectedDigest) {
+    add("status.sourceEvidenceDigest", expectedDigest, statusDocument.sourceEvidenceDigest);
+  }
+  const signatureText = statusDocument.sourceSignature;
+  if (typeof signatureText !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(signatureText)) {
+    add("status.sourceSignature", "base64 Ed25519 signature", signatureText);
+    return;
+  }
+  if (statusDocument.sourceEvidenceDigest !== expectedDigest) return;
+  try {
+    const publicKey = createPublicKey(publicKeyPem);
+    const message = [
+      statusDocument.sourceIdentity, statusDocument.sourceKeyId,
+      statusDocument.sourceGeneratedAt, statusDocument.sourceExpiresAt,
+      statusDocument.sourceEvidenceDigest
+    ].join("\n");
+    const signature = Buffer.from(signatureText, "base64");
+    if (signature.toString("base64") !== signatureText ||
+        !verifySignature(null, Buffer.from(message), publicKey, signature)) {
+      add("status.sourceSignature", "valid signature under pinned source key", "invalid");
+    }
+  } catch {
+    add("status.sourceSignature", "valid signature under pinned source key", "invalid");
+  }
+}
 
 function propertyAllows(property, expected) {
   if (!property || typeof property !== "object") return false;
@@ -105,8 +202,9 @@ function verifyTrust(statusDocument, schemaDocument) {
 
   const gateData = readGateStatuses(statusDocument);
   if (!gateData.field || !validGateEntries(gateData)) {
-    add("status.gates", `exactly the G0-G6 gate set with all statuses READY`, gateData.entries);
+    add("status.gates", `exactly the E0-E6 evidence-console contract-check set with all statuses READY`, gateData.entries);
   }
+  verifySignedFreshness(statusDocument, add);
 
   if (schemaDocument.$schema !== STATUS_SCHEMA_URI) {
     add("schema.$schema", STATUS_SCHEMA_URI, schemaDocument.$schema);
@@ -119,6 +217,32 @@ function verifyTrust(statusDocument, schemaDocument) {
     for (const [key, expected] of Object.entries(EXPECTED_TRUST)) {
       if (!propertyAllows(properties[key], expected)) {
         add(`schema.properties.${key}`, expected, properties[key]);
+      }
+    }
+    if (!propertyAllows(properties.sourceIdentity, SOURCE_IDENTITY)) {
+      add("schema.properties.sourceIdentity", SOURCE_IDENTITY, properties.sourceIdentity);
+    }
+    const keyId = process.env.EVIDENCE_SOURCE_KEY_ID;
+    const publicKeyPem = process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+    if (!keyId || !publicKeyPem) {
+      add("sourceSignatureConfiguration", "pinned EVIDENCE_SOURCE_KEY_ID and EVIDENCE_SOURCE_PUBLIC_KEY_PEM", "missing");
+    }
+    if (!keyId || !propertyAllows(properties.sourceKeyId, keyId)) {
+      add("schema.properties.sourceKeyId", "const pinned source key ID", properties.sourceKeyId);
+    }
+    const digestSchema = properties.sourceEvidenceDigest;
+    if (!digestSchema || digestSchema.type !== "string" || digestSchema.pattern !== "^[a-f0-9]{64}$") {
+      add("schema.properties.sourceEvidenceDigest", "SHA-256 hex digest pattern", digestSchema);
+    }
+    const signatureSchema = properties.sourceSignature;
+    if (!signatureSchema || signatureSchema.type !== "string" ||
+        signatureSchema.pattern !== "^[A-Za-z0-9+/]{86}==$") {
+      add("schema.properties.sourceSignature", "Ed25519 base64 signature pattern", signatureSchema);
+    }
+    for (const key of ["sourceGeneratedAt", "sourceExpiresAt"]) {
+      const rule = properties[key];
+      if (!rule || rule.type !== "string" || rule.format !== "date-time") {
+        add(`schema.properties.${key}`, "date-time string", rule);
       }
     }
     if (!propertyAllows(properties.overall, "READY")) {
@@ -167,7 +291,7 @@ function verifyTrust(statusDocument, schemaDocument) {
   if (!Array.isArray(required)) {
     add("schema.required", "array", required);
   } else {
-    const expectedRequired = [...Object.keys(EXPECTED_TRUST), "overall"];
+    const expectedRequired = [...Object.keys(EXPECTED_TRUST), ...SOURCE_ATTESTATION_FIELDS, "sourceGeneratedAt", "sourceExpiresAt", "overall"];
     if (gateData.field) expectedRequired.push(gateData.field);
     for (const key of expectedRequired) {
       if (!required.includes(key)) add(`schema.required.${key}`, "required", required);
