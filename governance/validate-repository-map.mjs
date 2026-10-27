@@ -116,7 +116,7 @@ export function validateRepositoryMap(map) {
   if (!g6Contract ||
       g6Contract.repository !== "great-scale" ||
       g6Contract.path !== "contracts/g6-residual-measurement/v1.schema.json" ||
-      g6Contract.schemaBlobSha !== "a0956c825e9a8974f5855054d2c80eb4433391f9" ||
+      g6Contract.schemaBlobSha !== "5322c32362ff42b5e251672d0b5ac9c61ae106a5" ||
       g6Contract.version !== "v1" ||
       g6Contract.status !== "schema-only-not-producer" ||
       !g6Contract.mapping ||
