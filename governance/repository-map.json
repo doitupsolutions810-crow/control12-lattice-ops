@@ -379,7 +379,8 @@
         "no-default-zero-or-caller-supplied-value-as-observation",
         "authoritative-g0-g6-producer-verification",
         "independent-signing-key-and-pinned-trust-anchor",
-        "exact-head-end-to-end-test-run"
+        "exact-head-end-to-end-test-run",
+        "topology-derived-residual-domain-0-to-0.25"
       ]
     },
     {
