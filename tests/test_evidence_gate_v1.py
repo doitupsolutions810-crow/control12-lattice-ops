@@ -116,6 +116,14 @@ class EvidenceGateTests(unittest.TestCase):
     def test_rejects_invalid_max_age(self):
         self.assertEqual(self.evaluate(max_age_seconds=0).code, "INVALID_FRESHNESS_POLICY")
 
+    def test_rejects_unknown_top_level_field(self):
+        self.env["unreviewed_extension"] = True
+        self.assertEqual(self.evaluate().code, "UNKNOWN_FIELDS")
+
+    def test_rejects_unknown_nested_field(self):
+        self.env["subject"]["branch"] = "main"
+        self.assertEqual(self.evaluate().code, "UNKNOWN_FIELDS")
+
 
 if __name__ == "__main__":
     unittest.main()
