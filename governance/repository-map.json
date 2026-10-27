@@ -468,5 +468,12 @@
         "authority-and-provenance-check"
       ]
     }
-  ]
+  ],
+  "operationEvidenceContract": {
+    "version": "v1",
+    "repository": "doitupsolutions810-crow/great-scale",
+    "document": "docs/OPERATION_EVIDENCE_CONTRACT_V1.md",
+    "schema": "contracts/operation-evidence/v1.schema.json",
+    "status": "proposed-not-runtime-verified"
+  }
 }
