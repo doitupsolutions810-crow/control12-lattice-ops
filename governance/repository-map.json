@@ -428,7 +428,10 @@
         "numerical-certification-key-id-pinned-separately-from-receipt-key",
         "numerical-certification-generated-at-expires-at-freshness-validated",
         "numerical-certification-proof-digest-matches-downloaded-evidence",
-        "numerical-certification-bounds-within-measurement-tolerance"
+        "numerical-certification-bounds-within-measurement-tolerance",
+        "numerical-certificate-measurement-digest-matches-canonical-measurement",
+        "numerical-proof-origin-pinned-by-deployment-config",
+        "numerical-proof-fetch-rejects-redirects-and-verifies-exact-response-url"
       ]
     },
     {
