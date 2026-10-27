@@ -31,3 +31,7 @@ A job that fails before recording any steps is a verification/infrastructure blo
 3. Keep repository inventory count synchronized with the records.
 4. Test every proposed edge against pinned revisions; attach observed results before promoting its status.
 5. Keep production-changing actions blocked until their explicit authorization and evidence gates pass.
+
+## Shared operation/evidence contract
+
+The candidate cross-repository envelope is specified in the public Great Scale repository at `docs/OPERATION_EVIDENCE_CONTRACT_V1.md` with JSON Schema `contracts/operation-evidence/v1.schema.json`. Both references are proposed only. The private inventory records the contract location; it does not claim that the services already emit or consume the schema. An interface stays unverified until an exact-head integration test demonstrates this contract in actual requests and durable receipts.
