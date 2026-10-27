@@ -49,3 +49,9 @@ A job that fails before recording any steps is a verification/infrastructure blo
 ## Shared operation/evidence contract
 
 The candidate cross-repository envelope is specified in the public Great Scale repository at `docs/OPERATION_EVIDENCE_CONTRACT_V1.md` with JSON Schema `contracts/operation-evidence/v1.schema.json`. Both references are proposed only. The private inventory records the contract location; it does not claim that the services already emit or consume the schema. An interface stays unverified until an exact-head integration test demonstrates this contract in actual requests and durable receipts.
+
+## Signed source-console edge: E0-E6 is not G0-G6
+
+The private registry now explicitly records a proposed edge from CONTROL12 Lattice Ops to the Living Intermediate Control Plane for the read-only v5.4.0 status/schema pair. The producer candidate emits a canonical status digest, schema digest, source identity and key ID, timestamps, and an Ed25519 signature; the consumer candidate re-computes the digests, checks exact source/schema fields and freshness, and verifies the signature using an independently configured public key.
+
+That source-console contract proves the provenance and integrity of the console's own E0-E6 status only. It does not establish operational G0-G6 production acceptance, actual deployment health, immutable artifact provenance, or release authority. The edge remains `proposed-not-verified` until both exact source revisions and the live status/schema responses are tested together, the signature/key binding is verified, and an inspectable exact-head end-to-end run passes.
