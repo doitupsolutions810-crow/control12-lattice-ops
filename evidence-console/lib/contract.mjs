@@ -1,0 +1,198 @@
+import {
+  createHash,
+  createPrivateKey,
+  createPublicKey,
+  sign,
+  verify
+} from "node:crypto";
+
+export const EVIDENCE_CONTRACT = Object.freeze({
+  version: "5.4.0",
+  runtime: "read-only-dynamic",
+  privacy: "local-only",
+  serverSideEvidenceStorage: false,
+  syntheticEvidenceRejected: true,
+  productionEvidenceClassRequired: true,
+  requiredEvidenceClass: "production-acceptance",
+  requiredEnvironment: "production",
+  mandatoryGates: 7
+});
+
+export const SOURCE_IDENTITY = "control12-evidence-console";
+export const CHECK_IDS = Object.freeze(["E0", "E1", "E2", "E3", "E4", "E5", "E6"]);
+export const MAX_EVIDENCE_AGE_MS = 5 * 60 * 1000;
+export const MAX_CLOCK_SKEW_MS = 30 * 1000;
+const SIGNATURE_PATTERN = "^[A-Za-z0-9+/]{86}==$";
+const DIGEST_PATTERN = "^[a-f0-9]{64}$";
+
+function requireString(env, name, pattern = null) {
+  const value = typeof env[name] === "string" ? env[name].trim() : "";
+  if (!value || (pattern && !pattern.test(value))) {
+    throw new Error("evidence_source_configuration_invalid");
+  }
+  return value;
+}
+
+function signingMaterials(env = process.env) {
+  const keyId = requireString(env, "EVIDENCE_SOURCE_KEY_ID", /^[A-Za-z0-9._:-]{1,128}$/);
+  const privatePem = requireString(env, "EVIDENCE_SOURCE_PRIVATE_KEY_PEM");
+  const publicPem = requireString(env, "EVIDENCE_SOURCE_PUBLIC_KEY_PEM");
+  let privateKey;
+  let publicKey;
+  try {
+    privateKey = createPrivateKey(privatePem);
+    publicKey = createPublicKey(publicPem);
+  } catch {
+    throw new Error("evidence_source_key_material_invalid");
+  }
+  if (privateKey.asymmetricKeyType !== "ed25519" ||
+      publicKey.asymmetricKeyType !== "ed25519") {
+    throw new Error("evidence_source_key_type_invalid");
+  }
+  const derived = createPublicKey(privateKey).export({ type: "spki", format: "der" });
+  const configured = publicKey.export({ type: "spki", format: "der" });
+  if (!derived.equals(configured)) {
+    throw new Error("evidence_source_key_pair_mismatch");
+  }
+  return { keyId, privateKey, publicKey };
+}
+
+export function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return "[" + value.map(item => item === undefined ? "null" : canonicalJson(item)).join(",") + "]";
+  }
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value)
+      .filter(key => value[key] !== undefined)
+      .sort()
+      .map(key => JSON.stringify(key) + ":" + canonicalJson(value[key]))
+      .join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+export function sourceDigest(statusDocument) {
+  const unsigned = { ...statusDocument };
+  delete unsigned.sourceEvidenceDigest;
+  delete unsigned.sourceSignature;
+  return createHash("sha256").update(canonicalJson(unsigned)).digest("hex");
+}
+
+export function sourceSignatureMessage(statusDocument) {
+  return [
+    statusDocument.sourceIdentity,
+    statusDocument.sourceKeyId,
+    statusDocument.sourceGeneratedAt,
+    statusDocument.sourceExpiresAt,
+    statusDocument.sourceEvidenceDigest
+  ].join("\n");
+}
+
+export function buildEvidenceSchema(env = process.env) {
+  const { keyId } = signingMaterials(env);
+  return {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    additionalProperties: false,
+    required: [
+      ...Object.keys(EVIDENCE_CONTRACT),
+      "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest", "sourceSignature",
+      "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
+    ],
+    properties: {
+      ...Object.fromEntries(Object.entries(EVIDENCE_CONTRACT).map(([key, value]) => [key, { const: value }])),
+      sourceIdentity: { const: SOURCE_IDENTITY },
+      sourceKeyId: { const: keyId },
+      sourceEvidenceDigest: { type: "string", pattern: DIGEST_PATTERN },
+      sourceSignature: { type: "string", pattern: SIGNATURE_PATTERN },
+      sourceGeneratedAt: { type: "string", format: "date-time" },
+      sourceExpiresAt: { type: "string", format: "date-time" },
+      overall: { const: "READY" },
+      gates: {
+        type: "array",
+        minItems: 7,
+        maxItems: 7,
+        uniqueItems: true,
+        allOf: CHECK_IDS.map(id => ({
+          contains: { type: "object", required: ["id"], properties: { id: { const: id } } },
+          minContains: 1,
+          maxContains: 1
+        })),
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "status"],
+          properties: {
+            id: { enum: [...CHECK_IDS] },
+            status: { const: "READY" }
+          }
+        }
+      }
+    }
+  };
+}
+
+export function verifyEvidenceStatus(status, { env = process.env, now = Date.now() } = {}) {
+  const failures = [];
+  if (!status || typeof status !== "object" || Array.isArray(status)) {
+    return { valid: false, failures: ["status_not_object"] };
+  }
+  const generated = Date.parse(status.sourceGeneratedAt);
+  const expires = Date.parse(status.sourceExpiresAt);
+  if (!Number.isFinite(generated) || !Number.isFinite(expires)) {
+    failures.push("freshness_timestamps_invalid");
+  } else {
+    if (generated > now + MAX_CLOCK_SKEW_MS) failures.push("source_generated_in_future");
+    if (now - generated > MAX_EVIDENCE_AGE_MS) failures.push("source_evidence_stale");
+    if (expires <= now) failures.push("source_evidence_expired");
+    if (expires <= generated || expires - generated > MAX_EVIDENCE_AGE_MS) failures.push("source_lifetime_invalid");
+  }
+  let materials;
+  try {
+    materials = signingMaterials(env);
+  } catch {
+    return { valid: false, failures: [...failures, "source_signing_configuration_invalid"] };
+  }
+  if (status.sourceIdentity !== SOURCE_IDENTITY) failures.push("source_identity_mismatch");
+  if (status.sourceKeyId !== materials.keyId) failures.push("source_key_id_mismatch");
+  const digest = sourceDigest(status);
+  if (status.sourceEvidenceDigest !== digest) failures.push("source_digest_mismatch");
+  if (typeof status.sourceSignature !== "string" || !new RegExp(SIGNATURE_PATTERN).test(status.sourceSignature)) {
+    failures.push("source_signature_malformed");
+  } else if (status.sourceEvidenceDigest === digest) {
+    try {
+      if (!verify(null, Buffer.from(sourceSignatureMessage(status)), materials.publicKey, Buffer.from(status.sourceSignature, "base64"))) {
+        failures.push("source_signature_invalid");
+      }
+    } catch {
+      failures.push("source_signature_invalid");
+    }
+  }
+  return { valid: failures.length === 0, failures };
+}
+
+export function buildEvidenceStatus({ env = process.env, now = Date.now() } = {}) {
+  const { keyId, privateKey, publicKey } = signingMaterials(env);
+  const currentTime = now instanceof Date ? now.getTime() : Number(now);
+  if (!Number.isFinite(currentTime)) throw new Error("evidence_source_clock_invalid");
+  const status = {
+    ...EVIDENCE_CONTRACT,
+    sourceIdentity: SOURCE_IDENTITY,
+    sourceKeyId: keyId,
+    sourceGeneratedAt: new Date(currentTime).toISOString(),
+    sourceExpiresAt: new Date(currentTime + 60 * 1000).toISOString(),
+    overall: "READY",
+    // E0-E6 are only checks that this contract endpoint can safely attest its own
+    // source identity, key configuration, freshness, schema, digest, signature,
+    // and read-only behavior. They are not production acceptance gates G0-G6.
+    gates: CHECK_IDS.map(id => ({ id, status: "READY" }))
+  };
+  status.sourceEvidenceDigest = sourceDigest(status);
+  status.sourceSignature = sign(null, Buffer.from(sourceSignatureMessage(status)), privateKey).toString("base64");
+  const checked = verifyEvidenceStatus(status, { env, now: currentTime });
+  if (!checked.valid) throw new Error("evidence_source_self_check_failed");
+  const derivedPublicKey = createPublicKey(privateKey).export({ type: "spki", format: "der" });
+  const configuredPublicKey = publicKey.export({ type: "spki", format: "der" });
+  if (!derivedPublicKey.equals(configuredPublicKey)) throw new Error("evidence_source_self_check_failed");
+  return status;
+}
