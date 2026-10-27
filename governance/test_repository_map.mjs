@@ -253,7 +253,7 @@ test("private registry pins the public G6 receipt schema and its non-authorizing
   assert.deepEqual(baseline.g6ResidualMeasurementContract, {
     repository: "great-scale",
     path: "contracts/g6-residual-measurement/v1.schema.json",
-    schemaBlobSha: "b4d59db4cda7a53d82bdfc9333ad504a864f9cf5",
+    schemaBlobSha: "63f790b4bd6799efc22c11c35d2dbec3b126ad48",
     version: "v1",
     status: "schema-only-not-producer",
     mapping: {
