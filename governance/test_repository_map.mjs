@@ -211,6 +211,8 @@ test("Great Scale edge cannot promote G6 from a calculated/default scalar alone"
     "numerical-certification-key-id-pinned-separately-from-receipt-key",
     "numerical-certification-generated-at-expires-at-freshness-validated",
     "numerical-certification-proof-digest-matches-downloaded-evidence",
+    "numerical-certificate-canonical-measurement-digest-recomputed-and-bound",
+    "numerical-certificate-evidence-origin-pinned-and-redirects-rejected",
     "numerical-certification-bounds-within-measurement-tolerance",
     "certified-curvature-and-metric-area-error-bounds-within-tolerance",
     "empirical-richardson-estimates-not-treated-as-rigorous",
