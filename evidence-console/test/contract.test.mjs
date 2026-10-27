@@ -7,6 +7,7 @@ import {
   buildEvidenceSchema,
   buildEvidenceStatus,
   sourceDigest,
+  sourceSchemaDigest,
   verifyEvidenceStatus,
   verifyEvidenceSchema,
   CHECK_IDS,
@@ -61,6 +62,7 @@ test("builds a signed, fresh v5.4.0 status with a schema-bound E0-E6 contract", 
   assert.equal(status.gates.every(gate => gate.status === "READY"), true);
   assert.equal(status.sourceIdentity, "control12-evidence-console");
   assert.equal(status.sourceKeyId, "fixture-key-1");
+  assert.equal(status.sourceSchemaDigest, sourceSchemaDigest(schema));
   assert.equal(status.sourceEvidenceDigest, sourceDigest(status));
   assert.equal(verifyEvidenceStatus(status, { env: fixtureEnv }).valid, true);
   assert.equal(schema.properties.sourceKeyId.const, "fixture-key-1");
@@ -234,4 +236,14 @@ test("schema API is read-only and advertises the independently pinned key", () =
   const denied = mockResponse();
   schemaHandler({ method: "POST" }, denied);
   assert.equal(denied.statusCode, 405);
+});
+
+
+test("status verifier rejects schema digest mismatch", () => {
+  const status = buildEvidenceStatus({ env: fixtureEnv });
+  status.sourceSchemaDigest = "0".repeat(64);
+  const result = verifyEvidenceStatus(status, { env: fixtureEnv });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes("source_schema_digest_mismatch"));
+  assert.ok(result.failures.includes("source_digest_mismatch"));
 });
