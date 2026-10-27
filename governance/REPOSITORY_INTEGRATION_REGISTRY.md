@@ -69,3 +69,13 @@ The same `BuildFailed / startup_failure / zero jobs` signature has been reported
 ## G6 residual numeric domain
 
 The topology-derived residual coordinate is (S=(1-	au^2)/4) with (	au) in [0, 1], hence the supported G6 domain is **`0 <= S <= 0.25`**. The lower-bound cone predicate is not a complete domain validator: by itself it can accept an arbitrarily large positive scalar. A signed production acceptance artifact must still be rejected if `S` is non-finite or outside [0, 0.25]. A signature authenticates the claim; it does not make a mathematically out-of-domain value valid.
+
+
+
+## Pinned G6 measurement receipt schema
+
+The private registry now pins Great Scale's public contract at `great-scale/contracts/g6-residual-measurement/v1.schema.json`, Git blob SHA `a0956c825e9a8974f5855054d2c80eb4433391f9`, status `schema-only-not-producer`. The intended mapping is `measurement.STopological → residual.S`, `measuredAt → residual.measuredAt`, `issuer → residual.sourceId`, and `buildId → residual.buildId`. The map validator requires this exact path, blob SHA, version, status and mapping.
+
+This receipt schema binds model/version/parameters/input digest, source commit, successful run/attempt/head, artifact digest, measurement time, numeric residual domain, numerical convergence/error diagnostics, canonical SHA-256 digest and Ed25519 signature metadata. The schema does not perform cross-field verification or query the Actions API. The production producer must verify the actual run and artifact, ensure source commit equals workflow head, reproduce the model/input/artifact binding, check timestamps, recompute canonical digest, verify the signature under an independently pinned key, and map the G6 residual into the final signed G0-G6 attestation.
+
+The connection remains `proposed-not-verified`: no live producer, endpoint, or provisioned G6 signing key has been verified. The private map is not to be treated as evidence that this service currently exists.
