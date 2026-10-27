@@ -46,7 +46,7 @@ jobs:
           node-version: "22"
 
       - name: Test procurement evidence contract
-        run: node --test procurement/test/evaluate.test.mjs
+        run: node --test procurement/test/evaluate.test.mjs evidence-console/test/contract.test.mjs
 
       - name: Detect npm workspace
         id: detect
