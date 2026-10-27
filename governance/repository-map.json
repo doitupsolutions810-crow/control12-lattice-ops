@@ -418,7 +418,12 @@
         "independent-numerical-certification-evidence-fetch-and-proof-digest-verified",
         "certified-curvature-and-metric-area-error-bounds-within-tolerance",
         "certificate-verifier-method-and-identity-pinned",
-        "model-g6-certification-eligibility-not-asserted-from-model-output"
+        "model-g6-certification-eligibility-not-asserted-from-model-output",
+        "approved-independent-numerical-certificate-method",
+        "certificate-source-commit-and-model-input-digest-match",
+        "certificate-proof-artifact-digest-verified",
+        "empirical-richardson-estimates-not-treated-as-rigorous",
+        "numerical-certifier-identity-pinned-independent-of-receipt"
       ]
     },
     {
