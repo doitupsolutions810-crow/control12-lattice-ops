@@ -21,6 +21,15 @@ _REQUIRED_CONSTRAINTS = {
 }
 
 
+def _finite_number(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
 def _validate_intent(intent: Any) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     if not isinstance(intent, dict):
         raise ValueError("intent must be an object")
@@ -37,12 +46,15 @@ def _validate_intent(intent: Any) -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("constraints must be an object")
 
     environment = target.get("environment")
-    if environment not in {"development", "staging", "production"}:
+    if not isinstance(environment, str) or environment not in {"development", "staging", "production"}:
         raise ValueError("invalid target environment")
     for field in ("region", "version"):
         value = target.get(field)
         if not isinstance(value, str) or not value.strip():
             raise ValueError(f"target.{field} must be a non-empty string")
+
+    if any(not isinstance(key, str) for key in constraints):
+        raise ValueError("constraint names must be strings")
 
     missing = _REQUIRED_CONSTRAINTS - constraints.keys()
     unknown = constraints.keys() - _REQUIRED_CONSTRAINTS
@@ -53,18 +65,14 @@ def _validate_intent(intent: Any) -> tuple[dict[str, Any], dict[str, Any], dict[
 
     error_rate = constraints["max_error_rate"]
     if (
-        isinstance(error_rate, bool)
-        or not isinstance(error_rate, (int, float))
-        or not math.isfinite(float(error_rate))
+        not _finite_number(error_rate)
         or not 0 <= float(error_rate) < 1
     ):
         raise ValueError("max_error_rate must be finite and in [0, 1)")
 
     latency = constraints["max_p95_latency_ms"]
     if (
-        isinstance(latency, bool)
-        or not isinstance(latency, (int, float))
-        or not math.isfinite(float(latency))
+        not _finite_number(latency)
         or float(latency) <= 0
     ):
         raise ValueError("max_p95_latency_ms must be a positive finite number")
