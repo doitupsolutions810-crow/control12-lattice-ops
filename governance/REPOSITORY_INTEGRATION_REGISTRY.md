@@ -20,7 +20,21 @@ No repository or edge in this snapshot is marked verified.
 
 ## Required promotion evidence
 
-Before changing any entry to `verified`, attach a full 40-character commit SHA, an actual test/workflow run URL, an observed result, and a durable evidence URL. For security-sensitive edges, validate authorization scope, issuer authenticity, freshness, and revision binding independently.
+Run the private inventory's structural/adversarial checks with:
+
+```sh
+node --test governance/test_repository_map.mjs
+node governance/validate-repository-map.mjs
+```
+
+Before changing any repository or interface entry to `verified`, the proof must bind:
+
+- `subjectRepository` and its full `commitSha`, for repository-level claims; or exact `sourceRepository` / `targetRepository` identities and full `sourceCommitSha` / `targetCommitSha`, for interface claims.
+- A registered `testRepository`, full `testCommitSha`, and `testRunHeadSha` equal to that test commit.
+- The exact positive `testRunId` and `testRunAttempt`, canonical run URL for that repository/run, `testRunConclusion=success`, and `observedResult=pass`.
+- A durable HTTPS `evidenceUrl` contained within that exact Actions run.
+
+The validator enforces shape and cross-field consistency. It does not fetch GitHub's Actions API or independently verify the truth of the run/result/commit assertions. Before promotion, inspect the real run metadata and evidence artifact to verify that all three repositories/revisions (source, target, test harness) match the recorded proof. The public registry uses the same promotion shape but contains only public records.
 
 A job that fails before recording any steps is a verification/infrastructure blocker with unknown cause. It is neither a test pass nor evidence of a source-code assertion failure.
 
