@@ -532,7 +532,7 @@
   "g6ResidualMeasurementContract": {
     "repository": "great-scale",
     "path": "contracts/g6-residual-measurement/v1.schema.json",
-    "schemaBlobSha": "a0956c825e9a8974f5855054d2c80eb4433391f9",
+    "schemaBlobSha": "5322c32362ff42b5e251672d0b5ac9c61ae106a5",
     "version": "v1",
     "status": "schema-only-not-producer",
     "mapping": {
