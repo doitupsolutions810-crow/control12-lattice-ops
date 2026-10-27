@@ -24,6 +24,17 @@ export const MAX_EVIDENCE_AGE_MS = 5 * 60 * 1000;
 export const MAX_CLOCK_SKEW_MS = 30 * 1000;
 const SIGNATURE_PATTERN = "^[A-Za-z0-9+/]{86}==$";
 const DIGEST_PATTERN = "^[a-f0-9]{64}$";
+const SOURCE_TIMESTAMP_PATTERN = /^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:[.][0-9]{1,3})?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$/;
+
+function parseSourceTimestamp(value) {
+  if (typeof value !== "string" || !SOURCE_TIMESTAMP_PATTERN.test(value)) return NaN;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return NaN;
+  const datePart = value.slice(0, 10);
+  const day = Date.parse(datePart + "T00:00:00Z");
+  if (!Number.isFinite(day) || new Date(day).toISOString().slice(0, 10) !== datePart) return NaN;
+  return parsed;
+}
 
 function requireString(env, name, pattern = null) {
   const value = typeof env[name] === "string" ? env[name].trim() : "";
@@ -132,13 +143,72 @@ export function buildEvidenceSchema(env = process.env) {
   };
 }
 
+export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
+  const failures = [];
+  let keyId;
+  try {
+    ({ keyId } = signingMaterials(env));
+  } catch {
+    return { valid: false, failures: ["source_signing_configuration_invalid"] };
+  }
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    return { valid: false, failures: ["schema_not_object"] };
+  }
+  if (schema.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
+      schema.type !== "object" || schema.additionalProperties !== false) {
+    failures.push("schema_root_contract_invalid");
+  }
+  const properties = schema.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    return { valid: false, failures: [...failures, "schema_properties_invalid"] };
+  }
+  for (const [key, value] of Object.entries(EVIDENCE_CONTRACT)) {
+    if (properties[key]?.const !== value) failures.push("schema_contract_field_invalid:" + key);
+  }
+  if (properties.sourceIdentity?.const !== SOURCE_IDENTITY) failures.push("schema_source_identity_invalid");
+  if (properties.sourceKeyId?.const !== keyId) failures.push("schema_source_key_id_invalid");
+  if (properties.sourceEvidenceDigest?.type !== "string" ||
+      properties.sourceEvidenceDigest.pattern !== DIGEST_PATTERN) failures.push("schema_digest_rule_invalid");
+  if (properties.sourceSignature?.type !== "string" ||
+      properties.sourceSignature.pattern !== SIGNATURE_PATTERN) failures.push("schema_signature_rule_invalid");
+  for (const key of ["sourceGeneratedAt", "sourceExpiresAt"]) {
+    if (properties[key]?.type !== "string" || properties[key].format !== "date-time") {
+      failures.push("schema_timestamp_rule_invalid:" + key);
+    }
+  }
+  if (properties.overall?.const !== "READY") failures.push("schema_overall_rule_invalid");
+  const gates = properties.gates;
+  if (!Array.isArray(schema.required) ||
+      ![...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
+        "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"]
+        .every(key => schema.required.includes(key))) {
+    failures.push("schema_required_fields_invalid");
+  }
+  if (!gates || gates.type !== "array" || gates.minItems !== 7 || gates.maxItems !== 7 ||
+      gates.uniqueItems !== true || !gates.items || gates.items.type !== "object" ||
+      !Array.isArray(gates.items.required) || !gates.items.required.includes("id") ||
+      !gates.items.required.includes("status") ||
+      !Array.isArray(gates.items.properties?.id?.enum) ||
+      gates.items.properties.id.enum.length !== CHECK_IDS.length ||
+      !CHECK_IDS.every(id => gates.items.properties.id.enum.includes(id)) ||
+      gates.items.properties?.status?.const !== "READY" ||
+      !Array.isArray(gates.allOf) || gates.allOf.length !== CHECK_IDS.length ||
+      !CHECK_IDS.every(id => gates.allOf.some(rule =>
+        rule?.contains?.properties?.id?.const === id &&
+        Array.isArray(rule.contains.required) && rule.contains.required.includes("id") &&
+        rule.minContains === 1 && rule.maxContains === 1))) {
+    failures.push("schema_contract_check_gate_rules_invalid");
+  }
+  return { valid: failures.length === 0, failures };
+}
+
 export function verifyEvidenceStatus(status, { env = process.env, now = Date.now() } = {}) {
   const failures = [];
   if (!status || typeof status !== "object" || Array.isArray(status)) {
     return { valid: false, failures: ["status_not_object"] };
   }
-  const generated = Date.parse(status.sourceGeneratedAt);
-  const expires = Date.parse(status.sourceExpiresAt);
+  const generated = parseSourceTimestamp(status.sourceGeneratedAt);
+  const expires = parseSourceTimestamp(status.sourceExpiresAt);
   if (!Number.isFinite(generated) || !Number.isFinite(expires)) {
     failures.push("freshness_timestamps_invalid");
   } else {
@@ -161,7 +231,9 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
     failures.push("source_signature_malformed");
   } else if (status.sourceEvidenceDigest === digest) {
     try {
-      if (!verify(null, Buffer.from(sourceSignatureMessage(status)), materials.publicKey, Buffer.from(status.sourceSignature, "base64"))) {
+      const signature = Buffer.from(status.sourceSignature, "base64");
+      if (signature.toString("base64") !== status.sourceSignature ||
+          !verify(null, Buffer.from(sourceSignatureMessage(status)), materials.publicKey, signature)) {
         failures.push("source_signature_invalid");
       }
     } catch {
@@ -190,7 +262,8 @@ export function buildEvidenceStatus({ env = process.env, now = Date.now() } = {}
   status.sourceEvidenceDigest = sourceDigest(status);
   status.sourceSignature = sign(null, Buffer.from(sourceSignatureMessage(status)), privateKey).toString("base64");
   const checked = verifyEvidenceStatus(status, { env, now: currentTime });
-  if (!checked.valid) throw new Error("evidence_source_self_check_failed");
+  const schemaCheck = verifyEvidenceSchema(buildEvidenceSchema(env), { env });
+  if (!checked.valid || !schemaCheck.valid) throw new Error("evidence_source_self_check_failed");
   const derivedPublicKey = createPublicKey(privateKey).export({ type: "spki", format: "der" });
   const configuredPublicKey = publicKey.export({ type: "spki", format: "der" });
   if (!derivedPublicKey.equals(configuredPublicKey)) throw new Error("evidence_source_self_check_failed");
