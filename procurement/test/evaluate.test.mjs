@@ -332,6 +332,7 @@ test("array schema requires one occurrence of every E0-E6 gate ID", () => {
     })),
     items: {
       type: "object",
+      additionalProperties: false,
       required: ["id", "status"],
       properties: {
         id: { enum: [...gateIds] },
@@ -367,6 +368,7 @@ test("array schema missing a gate-specific occurrence constraint holds procureme
     })),
     items: {
       type: "object",
+      additionalProperties: false,
       required: ["id", "status"],
       properties: {
         id: { enum: [...gateIds] },
