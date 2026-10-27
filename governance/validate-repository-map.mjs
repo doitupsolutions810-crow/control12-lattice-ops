@@ -108,9 +108,9 @@ export function validateRepositoryMap(map) {
     measurementSTopologicalToResidualS: "measurement.STopological -> residual.S",
     measuredAtToResidualMeasuredAt: "measuredAt -> residual.measuredAt",
     issuerToResidualSourceId: "issuer -> residual.sourceId",
-    buildIdToResidualBuildId: "buildId -> residual.buildId",
+    buildIdToResidualBuildId: "buildId must equal residual.buildId and the G0-G6 attestation buildId; it must be a shared composite release ID binding the Great Scale model run/artifact and Control Plane target build. If independent per-repository build IDs are used, v1 is insufficient and requires a versioned sourceBuildId/acceptanceBuildId contract.",
     sourceCommitEqualsWorkflowHead: "source.commitSha must equal execution.headSha",
-    artifactBinding: "artifact.digest and model.inputDigest must be verified against the intended source/build/artifact scope",
+    artifactBinding: "artifact.digest identifies the Great Scale model artifact and model.inputDigest binds its inputs; verify both independently and never substitute either for the Control Plane acceptance artifact digest.",
     trustBoundary: "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
   };
   if (!g6Contract ||
