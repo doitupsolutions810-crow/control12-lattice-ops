@@ -34,6 +34,10 @@ The status payload contains a SHA-256 digest of canonical JSON with only sourceE
 
 Timestamps are issued on each request, expire after 60 seconds, and are rejected by the consumer after five minutes or once expired. A timestamp baked into a static file is not compliant. Signing the console's own contract checks does not prove the control plane is production-ready and does not replace an independent sequence/checkpoint for ledger completeness.
 
+## Exact schema boundary
+
+The producer and consumers require exact status fields and exact schema property/required lists; unknown root keys are not accepted. Contract trust values must be fixed with `const` or a singleton enum, never an enum that also admits weaker values. The canonical status field is `gates`; `results` and `gateStatuses` are not aliases. Each of the seven E0–E6 entries contains exactly `id` and `status`, both required, and the item schema sets `additionalProperties: false`. The schema itself is also closed, and the key ID/public key are verified independently by the consumer. These strict structure rules prevent a valid signature over an object from quietly admitting unreviewed fields.
+
 ## Local validation
 
 From this directory:
