@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"urn:control12:operation-ledger-event:v1",
+  "title":"CONTROL12 Operation Ledger Event v1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["event_id","request_id","evidence_id","decision","repository","revision","artifact_sha256","policy_id","policy_version","verifier_code"],
+  "properties":{
+    "event_id":{"type":"string","minLength":1},
+    "request_id":{"type":"string","minLength":1},
+    "evidence_id":{"type":"string","minLength":1},
+    "decision":{"enum":["ACCEPTED","REJECTED","NOT_VERIFIED"]},
+    "repository":{"type":"string","minLength":1},
+    "revision":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "artifact_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "policy_id":{"type":"string","minLength":1},
+    "policy_version":{"type":"string","minLength":1},
+    "verifier_code":{"type":"string","minLength":1}
+  }
+}
