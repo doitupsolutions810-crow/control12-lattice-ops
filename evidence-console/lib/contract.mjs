@@ -178,14 +178,24 @@ export function verifyEvidenceSchema(schema, { env = process.env } = {}) {
   }
   if (properties.overall?.const !== "READY") failures.push("schema_overall_rule_invalid");
   const gates = properties.gates;
+  const expectedFields = [
+    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
+    "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
+  ];
+  const expectedFieldSet = new Set(expectedFields);
+  if (Object.keys(properties).length !== expectedFieldSet.size ||
+      !Object.keys(properties).every(key => expectedFieldSet.has(key))) {
+    failures.push("schema_properties_not_exact");
+  }
   if (!Array.isArray(schema.required) ||
-      ![...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
-        "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"]
-        .every(key => schema.required.includes(key))) {
+      schema.required.length !== expectedFieldSet.size ||
+      new Set(schema.required).size !== schema.required.length ||
+      !schema.required.every(key => expectedFieldSet.has(key))) {
     failures.push("schema_required_fields_invalid");
   }
   if (!gates || gates.type !== "array" || gates.minItems !== 7 || gates.maxItems !== 7 ||
       gates.uniqueItems !== true || !gates.items || gates.items.type !== "object" ||
+      gates.items.additionalProperties !== false ||
       !Array.isArray(gates.items.required) || !gates.items.required.includes("id") ||
       !gates.items.required.includes("status") ||
       !Array.isArray(gates.items.properties?.id?.enum) ||
@@ -206,6 +216,16 @@ export function verifyEvidenceStatus(status, { env = process.env, now = Date.now
   const failures = [];
   if (!status || typeof status !== "object" || Array.isArray(status)) {
     return { valid: false, failures: ["status_not_object"] };
+  }
+  const expectedFields = [
+    ...Object.keys(EVIDENCE_CONTRACT), "sourceIdentity", "sourceKeyId", "sourceEvidenceDigest",
+    "sourceSignature", "sourceGeneratedAt", "sourceExpiresAt", "overall", "gates"
+  ];
+  const expectedFieldSet = new Set(expectedFields);
+  const statusFields = Object.keys(status);
+  if (statusFields.length !== expectedFieldSet.size ||
+      !statusFields.every(key => expectedFieldSet.has(key))) {
+    failures.push("status_fields_not_exact");
   }
   for (const [key, expected] of Object.entries(EVIDENCE_CONTRACT)) {
     if (status[key] !== expected) failures.push("status_contract_field_mismatch:" + key);
