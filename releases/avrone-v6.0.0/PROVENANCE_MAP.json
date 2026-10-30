@@ -1,0 +1,43 @@
+{
+  "authority_chain": [
+    "identity",
+    "constitutional policy",
+    "capability or delegated authority",
+    "independent approval",
+    "bounded execution gate",
+    "attestation or receipt",
+    "append-only institutional event",
+    "audit and reconciliation"
+  ],
+  "external_boundaries": {
+    "cluster_mutation": false,
+    "external_federation_peer": false,
+    "financial_execution": false,
+    "production_database_connection": false,
+    "supabase_schema_applied": true
+  },
+  "new_components": {
+    "avrone/institutional_network.py": [
+      "constitutional versioning",
+      "authority leases",
+      "emergency authority",
+      "event log",
+      "treaties",
+      "audit export",
+      "reconciliation"
+    ],
+    "scripts/live_institutional_network_smoke_v6.py": [
+      "live HTTP validation"
+    ],
+    "scripts/postgres_smoke_v6.py": [
+      "PostgreSQL schema and trigger validation"
+    ],
+    "supabase/migrations/0012_sovereign_institutional_network_v6.sql": [
+      "12 service-owned tables",
+      "12 deny-client policies",
+      "2 append-only triggers"
+    ]
+  },
+  "schema": "avrone.provenance-map/v6",
+  "version": "6.0.0"
+}

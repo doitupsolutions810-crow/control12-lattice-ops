@@ -1,0 +1,18 @@
+{
+  "archive": "avrone-sovereign-fabric-v6.0.0.zip",
+  "archive_members": 182,
+  "crc": "PASS",
+  "credential_scan": {
+    "github_pat": "PASS",
+    "openai_project_key": "PASS",
+    "private_key": "PASS",
+    "supabase_secret_key": "PASS"
+  },
+  "manifest_count": 1,
+  "manifest_tracked_files": 181,
+  "manifest_verification": "PASS",
+  "sha256": "3d26edcc3fd8de67357f08603bc05fdd0a49749c59061bf65111c05f624d024a",
+  "source_tree_sha256": "ce849f64e5a8335374479e439faa70c041274fafb03613628a5dc0dc578d0d11",
+  "traversal": "PASS",
+  "yaml": "PASS"
+}

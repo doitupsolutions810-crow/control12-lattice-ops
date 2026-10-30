@@ -1,0 +1,26 @@
+{
+  "schema": "avrone.release-metadata/v6",
+  "version": "6.0.0",
+  "archive": "avrone-sovereign-fabric-v6.0.0.zip",
+  "archive_sha256": "3d26edcc3fd8de67357f08603bc05fdd0a49749c59061bf65111c05f624d024a",
+  "archive_members": 182,
+  "manifest_tracked_files": 181,
+  "source_tree_sha256": "ce849f64e5a8335374479e439faa70c041274fafb03613628a5dc0dc578d0d11",
+  "tests_passed": 85,
+  "tests_failed": 0,
+  "live_port": 18098,
+  "supabase_runtime_tables": 98,
+  "supabase_runtime_rls_policies": 98,
+  "v6_tables": 12,
+  "v6_policies": 12,
+  "event_log_triggers": 2,
+  "security_advisor_lints": 0,
+  "claim_boundary": {
+    "production_postgresql_connection": false,
+    "production_cluster_mutation": false,
+    "external_treaty_activation": false,
+    "interinstitution_execution": false,
+    "financial_execution": false,
+    "public_hosting": false
+  }
+}
