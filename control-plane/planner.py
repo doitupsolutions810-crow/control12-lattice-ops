@@ -22,6 +22,12 @@ def build_execution_plan(intent: Dict[str, Any]) -> Dict[str, Any]:
     if environment not in {"development", "staging", "production"}:
         raise ValueError("invalid target environment")
 
+    if environment == "production":
+        if constraints.get("require_signed_artifact") is not True:
+            raise ValueError("production requires signed artifacts")
+        if constraints.get("require_attestation") is not True:
+            raise ValueError("production requires attestation")
+
     steps: List[ExecutionStep] = [
         ExecutionStep("resolve-release", "release.resolve"),
         ExecutionStep("verify-source", "source.verify", ("resolve-release",)),

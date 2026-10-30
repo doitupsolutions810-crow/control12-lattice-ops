@@ -4,31 +4,110 @@
   "title": "CONTROL12 Intent v5",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "intent", "target", "constraints"],
+  "required": [
+    "schema",
+    "intent",
+    "target",
+    "constraints"
+  ],
   "properties": {
-    "schema": {"const": "control12.intent/v5"},
-    "intent": {"type": "string", "pattern": "^[a-z0-9_.-]+$"},
+    "schema": {
+      "const": "control12.intent/v5"
+    },
+    "intent": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
     "target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["environment", "region", "version"],
+      "required": [
+        "environment",
+        "region",
+        "version"
+      ],
       "properties": {
-        "environment": {"enum": ["development", "staging", "production"]},
-        "region": {"type": "string", "minLength": 1},
-        "version": {"type": "string", "minLength": 1}
+        "environment": {
+          "enum": [
+            "development",
+            "staging",
+            "production"
+          ]
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "constraints": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["require_signed_artifact", "require_attestation"],
+      "required": [
+        "require_signed_artifact",
+        "require_attestation"
+      ],
       "properties": {
-        "max_error_rate": {"type": "number", "minimum": 0, "maximum": 1},
-        "max_p95_latency_ms": {"type": "integer", "minimum": 1},
-        "canary_percent": {"type": "integer", "minimum": 1, "maximum": 100},
-        "require_signed_artifact": {"type": "boolean"},
-        "require_attestation": {"type": "boolean"}
+        "max_error_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_p95_latency_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "canary_percent": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "require_signed_artifact": {
+          "type": "boolean"
+        },
+        "require_attestation": {
+          "type": "boolean"
+        }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "required": [
+              "environment"
+            ],
+            "properties": {
+              "environment": {
+                "const": "production"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "constraints": {
+            "properties": {
+              "require_signed_artifact": {
+                "const": true
+              },
+              "require_attestation": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
