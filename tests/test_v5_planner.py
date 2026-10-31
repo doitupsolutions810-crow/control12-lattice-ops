@@ -1,5 +1,6 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+import sys
 
 
 def load_planner():
@@ -7,6 +8,7 @@ def load_planner():
     spec = spec_from_file_location("control12_v5_planner", path)
     module = module_from_spec(spec)
     assert spec and spec.loader
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -34,7 +36,6 @@ def test_build_execution_plan_orders_governed_release_flow_and_carries_residual(
     residual = {"S": 0.12, "psi": "PENDING", "orientation": "measured"}
     plan = planner.build_execution_plan(make_intent(residual=residual))
     ids = [step["id"] for step in plan["steps"]]
-
     assert plan["schema"] == "control12.execution-plan/v5"
     assert ids[0] == "resolve-release"
     assert "policy-admission" in ids
