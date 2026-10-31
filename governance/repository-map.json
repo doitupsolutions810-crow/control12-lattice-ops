@@ -1,0 +1,593 @@
+{
+  "schemaVersion": 1,
+  "owner": "doitupsolutions810-crow",
+  "inventoryAsOf": "2026-10-27",
+  "scope": "complete-account-inventory-private",
+  "status": "inventory-snapshot-not-runtime-attestation",
+  "inventorySource": "Connected GitHub repository inventory; visibility/default branch are point-in-time metadata",
+  "privacyRule": "Do not copy this full inventory into public repositories; use a public-only redacted subset there.",
+  "expectedRepositoryCount": 35,
+  "repositories": [
+    {
+      "name": "v0-ai-agent-for-servers",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "application-foundation",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes a generic Next.js starter; product integration is not established."
+    },
+    {
+      "name": "ghostshell",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "UnifiedToolStackApplication-utsp-platform",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "artifact-hosted-demo",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "artifact-demo",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README not inspected in this pass; purpose is not source-verified."
+    },
+    {
+      "name": "TrainLLM",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "simulation-and-learning",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes CycleKernel, multi-universe simulation, governance proposals, and AI-assisted analysis."
+    },
+    {
+      "name": "seed-platform-v10x-docs",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "documentation",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes documentation for the SEED Platform v10.x production artifact system."
+    },
+    {
+      "name": "CycleKernal",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "simulation-and-observability",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes a simulation engine, monitoring backend, persistent storage, dashboards, and metrics."
+    },
+    {
+      "name": "ghostshell-docs",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "wallaby-tutorial",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "Understanding-Uploaded-Files_-pasted_content-1-",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "cyclekernel-showcase",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "showcase",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README content and commit reported identical to CycleKernal; treat as a likely shared snapshot until proven otherwise."
+    },
+    {
+      "name": "express-openapi-validator",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "master",
+      "role": "api-validation-tooling",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Public repository metadata only; fork/upstream relationship and local changes require audit."
+    },
+    {
+      "name": "KiloMan",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "cyclekernel-attestpipe_q6-platform-upgrade-2",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata reports an empty repository; no implementation inferred."
+    },
+    {
+      "name": "Aiminer",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata reports an empty repository; no implementation inferred."
+    },
+    {
+      "name": "code",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "trinity-core",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "multi-agent-runtime",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes multi-agent control, CycleKernel orchestration, containers, monitoring, and deployment charts."
+    },
+    {
+      "name": "control12-lattice-ops",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "control-plane-and-operations",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes typed intent, deterministic planning, policy admission, bounded capabilities, verification, execution, observation, and attestation."
+    },
+    {
+      "name": "living-intermediate-control-plane",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "control-plane-and-evidence",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes lattice control, Avrone interface, federation, attestation, and evidence-console flows."
+    },
+    {
+      "name": "cleanroom-agent-system",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Implementation files were not independently inspected in this pass."
+    },
+    {
+      "name": "sacp-platform",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata reports an empty repository; no implementation inferred."
+    },
+    {
+      "name": "capability-plane",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "capability-execution-control",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes broker/executor, policy, gateway, AttestPipe, runtime pipeline, and configuration."
+    },
+    {
+      "name": "LLM-RE-KnowledgeBase-Agent",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "knowledge-and-provenance",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes a file-based knowledge base with provenance markers and a knowledge graph."
+    },
+    {
+      "name": "control12-workspace",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "agent-workspace",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes a chatbot and coding workspace with gated agent actions and attestation receipts."
+    },
+    {
+      "name": "control704-grokbot-knowledge",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "agent-orchestration-and-knowledge",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes the Avrone self-hosted multi-agent stack and a knowledge pack."
+    },
+    {
+      "name": "local-creator-radar",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "discovery-application",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes location-aware discovery, ranking, web research, and a training daemon."
+    },
+    {
+      "name": "capability-authority",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "capability-security",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes short-lived signed rights, dual approval, idempotency, reconciliation, and verifiable receipts."
+    },
+    {
+      "name": "x-near-me",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "discovery-application",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes local signal extraction, geographic ranking, and social-content observation."
+    },
+    {
+      "name": "github-api-automation",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "repository-automation",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes repository inventory and GitHub Actions workflow dispatch."
+    },
+    {
+      "name": "swarm-vm-runner",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "worker-runtime-and-ci",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes role-based workers, artifact hosting, Redis, and a self-hosted runner."
+    },
+    {
+      "name": "crystal-iris-ruby-zippy",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "onyx-pine-mint-pearl",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata reports an empty repository; no implementation inferred."
+    },
+    {
+      "name": "pilot-cloud-finch-rose",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "wolf-pixel-bolt-frost",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "role": "needs-source-audit",
+      "roleEvidence": "inventory-only",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "Repository metadata only; implementation role not verified."
+    },
+    {
+      "name": "great-scale",
+      "owner": "doitupsolutions810-crow",
+      "visibility": "public",
+      "defaultBranch": "main",
+      "role": "mathematical-modeling-and-verification",
+      "roleEvidence": "readme-inspected",
+      "integrationStatus": "not-end-to-end-verified",
+      "note": "README describes mathematical invariants and an additive QGT bridge; physical interpretation is not inferred."
+    }
+  ],
+  "interfaces": [
+    {
+      "from": "great-scale",
+      "to": "living-intermediate-control-plane",
+      "contract": "Versioned QGT/topological model evidence bound to exact source revisions. Great Scale's model exports Richardson-style empirical estimates, not a rigorous error certificate; G6 requires a separate independently verified interval-enclosure or analytic-derivative-bound certificate with source/input binding and certified error upper bounds within tolerance. The residual libraries are not live production measurement endpoints.",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check",
+        "great-scale-source-commit-sha",
+        "control-plane-consumer-commit-sha",
+        "live-measurement-source-identity",
+        "source-issued-measured-at-freshness",
+        "finite-residual-value-and-cone-policy",
+        "no-default-zero-or-caller-supplied-value-as-observation",
+        "authoritative-g0-g6-producer-verification",
+        "independent-signing-key-and-pinned-trust-anchor",
+        "exact-head-end-to-end-test-run",
+        "topology-derived-residual-domain-0-to-0.25",
+        "selected-model-identity-and-parameterization",
+        "explicit-gap-open-and-model-assumptions",
+        "chern-number-and-integrated-curvature",
+        "absolute-positive-and-negative-curvature-budgets",
+        "metric-area-budget-and-topological-excess",
+        "signed-topological-polarization-and-residual-S",
+        "quadrature-refinement-and-grid-origin-discrepancies",
+        "finite-error-bounds-and-configured-tolerance",
+        "topological-mapping-valid-true",
+        "versioned-g6-residual-measurement-schema-v1",
+        "measurement-st-topological-maps-to-consumer-residual-S",
+        "measurement-timestamp-maps-to-consumer-residual-measured-at",
+        "source-commit-equals-successful-run-head-sha",
+        "canonical-json-sha256-and-ed25519-signature-verified",
+        "model-parameter-and-input-digest-reproduced",
+        "numerical-convergence-and-certified-error-bounds-validated-from-independent-certificate",
+        "both-source-model-commit-and-consumer-release-commit-pinned",
+        "measurement-build-id-distinct-from-target-build-id",
+        "target-build-id-matches-g0-g6-attestation-build-id",
+        "target-commit-matches-g0-g6-attestation-source-commit",
+        "target-artifact-digest-matches-g0-g6-attestation-artifact-digest",
+        "measurement-artifact-distinct-from-target-artifact",
+        "target-build-and-target-artifact-digest-binding",
+        "issuer-and-target-build-id-map-to-residual-provenance",
+        "independent-numerical-certificate-verified",
+        "numerical-certificate-source-commit-and-model-input-digest-bound",
+        "numerical-certificate-upper-bounds-and-proof-digest-verified",
+        "quadrature-rigorous-certificate-distinct-from-empirical-estimates",
+        "richardson-estimates-explicitly-classified-as-empirical-not-rigorous",
+        "independent-interval-enclosure-or-analytic-derivative-bound-certificate",
+        "certificate-source-sha-and-model-input-digest-match",
+        "certified-curvature-and-metric-area-error-upper-bounds-within-tolerance",
+        "certificate-evidence-url-and-proof-digest-independently-validated",
+        "raw-model-output-alone-is-not-g6-eligible",
+        "empirical-richardson-estimates-not-treated-as-rigorous-bounds",
+        "independent-numerical-certification-evidence-fetch-and-proof-digest-verified",
+        "certified-curvature-and-metric-area-error-bounds-within-tolerance",
+        "certificate-verifier-method-and-identity-pinned",
+        "model-g6-certification-eligibility-not-asserted-from-model-output",
+        "approved-independent-numerical-certificate-method",
+        "certificate-source-commit-and-model-input-digest-match",
+        "certificate-proof-artifact-digest-verified",
+        "empirical-richardson-estimates-not-treated-as-rigorous",
+        "numerical-certifier-identity-pinned-independent-of-receipt",
+        "numerical-certification-certificate-signature-verified-under-independent-key",
+        "numerical-certification-key-id-pinned-separately-from-receipt-key",
+        "numerical-certification-generated-at-expires-at-freshness-validated",
+        "numerical-certification-proof-digest-matches-downloaded-evidence",
+        "numerical-certification-bounds-within-measurement-tolerance",
+        "numerical-certificate-measurement-digest-matches-canonical-measurement",
+        "numerical-proof-origin-pinned-by-deployment-config",
+        "numerical-proof-fetch-rejects-redirects-and-verifies-exact-response-url",
+        "numerical-certificate-canonical-measurement-digest-recomputed-and-bound",
+        "numerical-certificate-evidence-origin-pinned-and-redirects-rejected",
+        "exact-g6-measurement-schema-field-set",
+        "deployment-pinned-maximum-quadrature-tolerance",
+        "recomputed-absolute-curvature-budget-equals-positive-plus-negative",
+        "recomputed-metric-area-excess-and-topological-floor",
+        "recomputed-polarization-topological-scalar-and-psi-identities",
+        "convergence-and-empirical-estimate-diagnostics-within-tolerance",
+        "independent-certificate-signature-verified-under-separate-pinned-key",
+        "certificate-measurement-digest-matches-canonical-qgt-output"
+      ]
+    },
+    {
+      "from": "living-intermediate-control-plane",
+      "to": "capability-authority",
+      "contract": "Authenticated principal, validated intent, and explicit capability decision",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "capability-authority",
+      "to": "CycleKernal",
+      "contract": "Method/resource-bound capability and stable operation identity",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "CycleKernal",
+      "to": "capability-authority",
+      "contract": "Observed execution receipt, status, and lineage",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "capability-authority",
+      "to": "living-intermediate-control-plane",
+      "contract": "Signed durable receipt with issuer and revision provenance",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "control12-workspace",
+      "to": "control12-lattice-ops",
+      "contract": "Gated user intent into the operational planner",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "control12-lattice-ops",
+      "to": "trinity-core",
+      "contract": "Policy-approved plan into bounded multi-agent runtime",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "swarm-vm-runner",
+      "to": "control12-lattice-ops",
+      "contract": "Isolated worker execution and CI/artifact evidence",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "github-api-automation",
+      "to": "great-scale",
+      "contract": "Repository inventory and workflow status evidence",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-commit-sha",
+        "executed-test-or-workflow-run",
+        "observed-result",
+        "authority-and-provenance-check"
+      ]
+    },
+    {
+      "from": "control12-lattice-ops",
+      "to": "living-intermediate-control-plane",
+      "contract": "Read-only signed v5.4.0 E0-E6 status/schema contract: source identity, pinned key ID, sourceSchemaDigest, canonical payload digest, Ed25519 signature, and freshness. This proves the source-console contract only; it is not G0-G6 production acceptance.",
+      "verificationStatus": "proposed-not-verified",
+      "requiredEvidence": [
+        "exact-lattice-ops-commit-sha",
+        "exact-control-plane-consumer-commit-sha",
+        "live-status-response",
+        "live-schema-response",
+        "source-schema-digest-match",
+        "canonical-payload-digest-match",
+        "ed25519-signature-verified-against-independent-pinned-key",
+        "source-identity-and-freshness-verified",
+        "exact-head-end-to-end-test-run",
+        "observed-result",
+        "explicit-e0-e6-versus-g0-g6-separation"
+      ]
+    }
+  ],
+  "operationEvidenceContract": {
+    "version": "v1",
+    "repository": "doitupsolutions810-crow/great-scale",
+    "document": "docs/OPERATION_EVIDENCE_CONTRACT_V1.md",
+    "schema": "contracts/operation-evidence/v1.schema.json",
+    "status": "proposed-not-runtime-verified"
+  },
+  "g6ResidualMeasurementContract": {
+    "repository": "great-scale",
+    "path": "contracts/g6-residual-measurement/v1.schema.json",
+    "schemaBlobSha": "63f790b4bd6799efc22c11c35d2dbec3b126ad48",
+    "version": "v1",
+    "status": "schema-only-not-producer",
+    "mapping": {
+      "measurementSTopologicalToResidualS": "measurement.STopological -> residual.S",
+      "measuredAtToResidualMeasuredAt": "measuredAt -> residual.measuredAt",
+      "issuerToResidualSourceId": "issuer -> residual.sourceId",
+      "measurementBuildIdDistinctFromTargetBuildId": "measurementBuildId identifies the Great Scale measurement build; targetBuildId identifies the Control Plane acceptance build. These are independent identities and must not be assumed equal.",
+      "targetBuildIdToResidualBuildId": "targetBuildId must equal final G0-G6 attestation.buildId and becomes residual.buildId.",
+      "targetSourceRevisionToAttestationSource": "target.repository/commitSha must equal final G0-G6 attestation.source.repository/commitSha.",
+      "targetArtifactDigestToAcceptanceArtifact": "targetArtifact.digest must equal final G0-G6 attestation.artifact.digest.",
+      "sourceCommitEqualsWorkflowHead": "source.commitSha must equal execution.headSha",
+      "measurementArtifactBinding": "artifact.digest identifies the Great Scale model/measurement artifact and model.inputDigest binds its inputs; verify independently and never substitute it for targetArtifact.digest.",
+      "trustBoundary": "verify Ed25519 against an independently configured public key; receipt cannot choose its trust anchor",
+      "numericalCertificationRequired": "A separate numericalCertification object is mandatory; errorBoundMethod labels Richardson estimates as empirical only and never as rigorous proof.",
+      "numericalCertificationEvidenceVerified": "Independently fetch numericalCertification.evidenceUrl from the deployment-pinned HTTPS origin without redirects; recompute proofDigest and canonical measurementDigest; pin verifierId and method; require sourceCommitSha=source.commitSha, modelInputDigest=model.inputDigest, and both certified error upper bounds <= measurement.quadratureTolerance.",
+      "numericalCertificationClaimNotProof": "numericalCertification.verified=true is only a claim; independently verify proof evidence and trust policy before G6 promotion.",
+      "numericalCertificationTrustAnchorSeparate": "certificateKeyId and certificateSignature must verify under a separately configured, independently pinned numerical-certificate public key; do not treat the outer G6 receipt signature as proof of the certificate."
+    }
+  }
+}
