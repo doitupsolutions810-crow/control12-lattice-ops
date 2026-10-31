@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:control12:evidence-envelope:v1",
+  "title": "CONTROL12 Cross-Repository Evidence Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "evidence_id", "claim", "subject", "execution", "authority", "policy", "issued_at", "expires_at", "request_id", "signature"],
+  "properties": {
+    "schema": {"const": "control12.evidence-envelope/v1"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "claim": {"type": "object", "additionalProperties": false, "required": ["status", "summary"], "properties": {"status": {"enum": ["PASS", "FAIL", "NOT_VERIFIED"]}, "summary": {"type": "string", "minLength": 1}}},
+    "subject": {"type": "object", "additionalProperties": false, "required": ["repository", "revision", "artifact_sha256"], "properties": {"repository": {"type": "string", "minLength": 1}, "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "execution": {"type": "object", "additionalProperties": false, "required": ["mode", "worker_receipt_id", "local"], "properties": {"mode": {"enum": ["real", "simulation", "unknown"]}, "worker_receipt_id": {"type": "string"}, "local": {"type": "boolean"}}},
+    "authority": {"type": "object", "additionalProperties": false, "required": ["issuer", "key_id"], "properties": {"issuer": {"type": "string", "minLength": 1}, "key_id": {"type": "string", "minLength": 1}}},
+    "policy": {"type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": {"id": {"type": "string", "minLength": 1}, "version": {"type": "string", "minLength": 1}}},
+    "issued_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "expires_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "request_id": {"type": "string", "minLength": 1},
+    "signature": {"type": "object", "additionalProperties": false, "required": ["algorithm", "value"], "properties": {"algorithm": {"const": "Ed25519"}, "value": {"type": "string", "minLength": 1}}}
+  }
+}
