@@ -1,0 +1,40 @@
+{
+  "schema": "avrone.provenance-map/v4",
+  "version": "4.0.0",
+  "release": "4.0.0",
+  "base": {
+    "artifact": "avrone-sovereign-fabric-v3.0.0.zip",
+    "classification": "exact-input-bytes",
+    "sha256": "828896f2885684cc5fb51e599abde8b8ba40c3dcd1d69407de5c38b1687fc6d2"
+  },
+  "evolution": {
+    "classification": "regenerated-enterprise-runtime-code",
+    "new_modules": [
+      "enterprise",
+      "incident_command",
+      "evidence_graph",
+      "resource_exchange",
+      "operation_plans",
+      "database_readiness"
+    ],
+    "modified_modules": [
+      "api",
+      "cli",
+      "operator_dashboard",
+      "settings",
+      "store"
+    ],
+    "new_resources": [
+      "Supabase migration 0010",
+      "permanent enterprise organizations and departments",
+      "service ownership and budget transaction controls",
+      "incident command and bounded remediation",
+      "evidence graph lineage",
+      "four-authority federated resource reservations",
+      "maintenance-window operation plans",
+      "v4 operator dashboard",
+      "v4 regression and live HTTP validation"
+    ]
+  },
+  "claim_boundary": "The v4 enterprise code, local SQLite runtime, HTTP workflow, worker execution, deterministic archive, and Supabase schema migration are real and validated. No production Kubernetes mutation, live production pooler connection, GHCR publication, cloud OIDC exchange, external federation peer, production SLO endpoint, or public deployment is fabricated or claimed."
+}

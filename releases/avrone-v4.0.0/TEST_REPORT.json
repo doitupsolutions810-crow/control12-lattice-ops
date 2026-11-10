@@ -1,0 +1,66 @@
+{
+  "consequential_gates_default_disabled": true,
+  "enterprise_controls": {
+    "arbitrary_shell_supported": false,
+    "budget_requester_approver_separation": true,
+    "database_url_exposed": false,
+    "federated_resource_four_authorities": true,
+    "incident_action_requester_approver_executor_separation": true,
+    "incident_declarer_commander_separation": true,
+    "maintenance_window_enforced": true,
+    "service_owner_required": true
+  },
+  "external_credentials_embedded": false,
+  "live_http": {
+    "budget_self_approval_denied": true,
+    "budget_transaction": "applied",
+    "database_backend": "sqlite",
+    "database_ready": true,
+    "evidence_lineage_nodes": 2,
+    "execution_gates": {
+      "agents": false,
+      "cluster_commands": false,
+      "enterprise_operations": false,
+      "external": false,
+      "rollouts": false
+    },
+    "external_execution": false,
+    "incident_execution_gate_denied": true,
+    "operation_execution_gate_denied": true,
+    "resource_reservation_status": "active",
+    "service_owned": true,
+    "status": "PASS",
+    "version": "4.0.0"
+  },
+  "pytest": {
+    "failed": 0,
+    "passed": 67
+  },
+  "python_compilation": "PASS",
+  "schema": "avrone.test-report/v4",
+  "status": "PASS",
+  "supabase": {
+    "migration": "sovereign_enterprise_runtime_v4",
+    "project_ref": "cgpztofnwwopzakygojw",
+    "runtime_rls_policies": 71,
+    "runtime_tables": 71,
+    "security_advisor_lints": 0,
+    "status": "PASS",
+    "v4_policies": 15,
+    "v4_tables": 15
+  },
+  "version": "4.0.0",
+  "worker": {
+    "claimed": 0,
+    "completed": [],
+    "external_execution_enabled": false,
+    "failed": [],
+    "outbox_processed": 0,
+    "recovery": {
+      "jobs": 0,
+      "outbox": 0,
+      "stale_workers": 0
+    }
+  },
+  "yaml_parse": "PASS"
+}
