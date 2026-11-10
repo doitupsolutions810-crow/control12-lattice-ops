@@ -1,0 +1,76 @@
+{
+  "consequential_gates_default_disabled": true,
+  "constitutional_board": {
+    "activated_by_persisted": true,
+    "activated_constitution_version": 2,
+    "activation_before_quorum_denied": true,
+    "activation_receipt_persisted": true,
+    "amendment_digest": "589eb784fa2412c4ef89f71f7e28a105f26a191dd450bdc0ac5fff427269b8ae",
+    "amendment_id": "cam_77c614538e1d40bb8d1b895081683156",
+    "approval_quorum": 2,
+    "independent_activator_required": true,
+    "repeat_activation_denied": true,
+    "self_approval_denied": true,
+    "status": "PASS",
+    "voter_activation_denied": true
+  },
+  "external_credentials_embedded": false,
+  "live_operational_smoke": {
+    "database_backend": "sqlite-local-validation",
+    "deliberation": "recommend_approval",
+    "deployment_id": "dep_55949f8ce6654f8b88a3fe1b8b76898a",
+    "deployment_status": "active",
+    "evaluation": "passed",
+    "external_execution": false,
+    "institutional_reviews_completed": 1,
+    "mission_id": "mis_3cf05e93245048dd9c1033343f820862",
+    "port": 18089,
+    "separate_worker_process": true,
+    "slo_healthy": true,
+    "slo_observations": 4,
+    "status": "PASS",
+    "worker_jobs_completed": 3
+  },
+  "openai": {
+    "bounded_output": true,
+    "connector_contract": "PASS",
+    "live_key_used": false,
+    "responses_api": true,
+    "status": "fail_closed_pending_replacement_secret",
+    "store": false,
+    "strict_json_schema": true
+  },
+  "pytest": {
+    "failed": 0,
+    "passed": 41
+  },
+  "python_compilation": "PASS",
+  "release": {
+    "archive_files": 104,
+    "deterministic_double_build": true,
+    "manifest_tracked_files": 103,
+    "sha256": "bfbdccfdcead72227929803906fc3990a538e15508bb79200cb5b314c995ab29",
+    "tree_sha256": "35ae1d7b672285eb414acfb44757162c313d703bd2be10c50c29ba6a6a547f52",
+    "zip_crc": "PASS",
+    "zip_traversal": "PASS"
+  },
+  "status": "PASS",
+  "supabase": {
+    "activation_evidence_columns": true,
+    "deny_client_policies": 37,
+    "migrations": [
+      "persistent_operational_institution_v21",
+      "constitution_activation_evidence_v21"
+    ],
+    "project_ref": "cgpztofnwwopzakygojw",
+    "runtime_tables": 37,
+    "security_advisor_lints": 0,
+    "status": "PASS"
+  },
+  "version": "2.1.0",
+  "wolfram": {
+    "connector_contract": "PASS",
+    "live_app_id_used": false,
+    "status": "fail_closed_pending_app_id"
+  }
+}
