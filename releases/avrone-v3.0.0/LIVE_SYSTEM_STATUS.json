@@ -1,0 +1,23 @@
+{
+  "status": "ok",
+  "version": "3.0.0",
+  "endpoint": "http://127.0.0.1:18095",
+  "database_backend": "sqlite",
+  "blockers": [],
+  "pending_cluster_commands": 0,
+  "execution_gates": {
+    "agent_execution": false,
+    "cluster_command_execution": false,
+    "rollout_application": false,
+    "external_execution": false,
+    "cleanroom_execution": false,
+    "improvement_building": false
+  },
+  "claim_boundary": {
+    "persistent_public_deployment": false,
+    "live_postgres_pooler_connection": false,
+    "live_kubernetes_mutation": false,
+    "live_cloud_oidc_exchange": false,
+    "live_external_federation_peer": false
+  }
+}

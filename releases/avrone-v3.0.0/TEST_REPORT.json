@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "version": "3.0.0",
+  "python_compilation": "PASS",
+  "pytest": {"passed": 60, "failed": 0},
+  "live_oci_canary": {
+    "status": "PASS",
+    "mission_id": "mis_169005cd447e4e09b4ca53f9caa1171b",
+    "oci_artifact_id": "oci_4991d56fb5f24b5a8b72bc25d1ec564a",
+    "admission_id": "adm_8ec526dfbe814fd2b2f903bb23976e17",
+    "rollout_id": "rol_e358efeee14445f696624d8c8af84a3c",
+    "rollout_status": "passed",
+    "deployment_status": "active",
+    "mutable_reference_denied": true,
+    "external_execution": false
+  },
+  "live_multicluster": {
+    "status": "PASS",
+    "mission_id": "mis_d6a5f233a7234faba3e85fe149b81a07",
+    "deployment_id": "dep_3a8c4d030aa34b55818f3ba977fa9f69",
+    "dynamic_roles": ["governor", "architect", "verifier"],
+    "cluster_agent_id": "cla_709e36033cf143fa881ea8e840694363",
+    "cluster_receipt_status": "succeeded",
+    "slo_status": "healthy",
+    "dr_status": "passed",
+    "federation_message_status": "prepared"
+  },
+  "actual_cluster_agent": {
+    "status": "succeeded",
+    "command_id": "cmd_8fa4e8ccdc8c4742b29ecbcc2c7c924b",
+    "cluster_agent_id": "cla_2e90cfb071c34221812520575601b754",
+    "receipt_id": "crc_f3ec0eda6e4a4049844dd6a6a17cf048",
+    "mutation": false
+  },
+  "supabase": {
+    "status": "PASS",
+    "project_ref": "cgpztofnwwopzakygojw",
+    "migration": "multi_cluster_institution_v3",
+    "runtime_tables": 56,
+    "runtime_rls_policies": 56,
+    "v3_tables": 11,
+    "v3_policies": 11,
+    "security_advisor_lints": 0
+  },
+  "release": {
+    "archive_sha256": "828896f2885684cc5fb51e599abde8b8ba40c3dcd1d69407de5c38b1687fc6d2",
+    "archive_members": 154,
+    "manifest_file_count": 153,
+    "source_tree_sha256": "3467641771ad5f275d6bba3769d75bbcb56e40da2fc4f3b63e4369b952a2f9d5",
+    "deterministic_double_build": true,
+    "credential_hits": 0
+  },
+  "claim_boundary": {
+    "live_kubernetes_mutation": false,
+    "live_cloud_oidc_exchange": false,
+    "live_postgres_pooler_connection": false,
+    "live_external_federation_peer": false,
+    "live_ghcr_publish": false,
+    "actual_local_cluster_agent_process": true,
+    "actual_agent_mutation": false
+  },
+  "consequential_gates_default_disabled": true,
+  "external_credentials_embedded": false
+}
