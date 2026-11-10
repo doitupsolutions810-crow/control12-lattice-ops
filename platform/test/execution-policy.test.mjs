@@ -17,6 +17,17 @@ describe('execution policy path bounds', () => {
     assert.throws(() => policy.resolveSafe('../outside'), /escapes workspace/);
   });
 
+  it('rejects every escaping .. form instead of silently rewriting it', () => {
+    for (const p of ['..', '../', '../../etc/passwd', 'a/../../x', './../x', 'a/b/../../../c']) {
+      assert.throws(() => policy.resolveSafe(p), /escapes workspace/, p);
+    }
+  });
+
+  it('still allows .. that stays inside the workspace', () => {
+    assert.equal(policy.resolveSafe('a/../b'), path.join(path.resolve(root), 'b'));
+    assert.equal(policy.resolveSafe('a/b/../c'), path.join(path.resolve(root), 'a', 'c'));
+  });
+
   it('rejects absolute paths', () => {
     assert.throws(() => policy.resolveSafe('/etc/passwd'), /absolute paths/);
   });
