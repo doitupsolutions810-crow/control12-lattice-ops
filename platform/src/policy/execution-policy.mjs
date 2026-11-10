@@ -125,10 +125,16 @@ export function createExecutionPolicy(options = {}) {
     if (path.isAbsolute(relPath)) {
       deny('absolute paths are not allowed; use workspace-relative paths');
     }
-    const cleaned = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/, '');
-    if (cleaned.split(path.sep).includes('..')) {
+    // Reject traversal before normalization. Normalizing first can collapse a
+    // leading `..` and accidentally turn an escape attempt into an allowed
+    // in-workspace path.
+    if (relPath.split(/[\\/]+/).includes('..')) {
       deny('path escapes workspace');
     }
+    if (relPath.includes('\0')) {
+      deny('path contains null byte');
+    }
+    const cleaned = path.normalize(relPath);
     const absolute = path.resolve(workspaceRoot, cleaned);
     const relative = path.relative(workspaceRoot, absolute);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {

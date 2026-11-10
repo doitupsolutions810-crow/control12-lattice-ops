@@ -28,9 +28,28 @@ export async function GET() {
       fetch(`${platformUrl}/api/v1/security/status`, { headers, signal: AbortSignal.timeout(8000) }),
       fetch(`${platformUrl}/api/v1/belief/snapshot`, { headers, signal: AbortSignal.timeout(8000) })
     ]);
-    out.health = health.ok ? await health.json() : { ok: false, status: health.status };
-    out.security = security.ok ? await security.json() : { ok: false, status: security.status };
-    out.belief = belief.ok ? await belief.json() : { ok: false, status: belief.status };
+    const securityData = security.ok ? await security.json() as Record<string, unknown> : {};
+    const beliefData = belief.ok ? await belief.json() as Record<string, unknown> : {};
+    const nodes = Array.isArray(beliefData.nodes) ? beliefData.nodes : [];
+    out.security = security.ok
+      ? {
+          severity: typeof securityData.severity === 'string' ? securityData.severity : 'unknown',
+          mtls: Boolean(securityData.mtls),
+          dualCa: Boolean(securityData.dualCa)
+        }
+      : { ok: false, status: security.status };
+    out.belief = belief.ok
+      ? {
+          meanBelief: typeof beliefData.meanBelief === 'number' ? beliefData.meanBelief : null,
+          nodes: nodes.slice(0, 100).map(node => {
+            const item = node && typeof node === 'object' ? node as Record<string, unknown> : {};
+            return {
+              id: typeof item.id === 'string' ? item.id.slice(0, 128) : 'unknown',
+              belief: typeof item.belief === 'number' ? item.belief : 0
+            };
+          })
+        }
+      : { ok: false, status: belief.status };
     out.platform = { ok: health.ok };
   } catch (e) {
     out.platform = { ok: false, error: e instanceof Error ? e.message : String(e) };

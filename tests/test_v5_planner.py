@@ -1,5 +1,6 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+import sys
 
 
 def load_planner():
@@ -7,6 +8,9 @@ def load_planner():
     spec = spec_from_file_location("control12_v5_planner", path)
     module = module_from_spec(spec)
     assert spec and spec.loader
+    # Dataclasses resolves postponed annotations through the defining module.
+    # Register dynamic imports exactly as importlib's normal loader does.
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 

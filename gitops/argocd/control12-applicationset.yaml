@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: control12-production
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            control12.io/fleet: production
+  template:
+    metadata:
+      name: 'control12-{{ .nameNormalized }}'
+      labels:
+        control12.io/fleet: production
+        control12.io/region: '{{ index .metadata.labels "control12.io/region" }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/doitupsolutions810-crow/control12-lattice-ops.git
+        targetRevision: main
+        path: charts/control12
+        helm:
+          releaseName: control12
+          values: |
+            region: '{{ index .metadata.labels "control12.io/region" }}'
+            istio:
+              host: '{{ index .metadata.annotations "control12.io/host" }}'
+              gateway: '{{ index .metadata.annotations "control12.io/istio-gateway" }}'
+            analysis:
+              enabled: true
+              prometheusAddress: '{{ index .metadata.annotations "control12.io/prometheus-address" }}'
+      destination:
+        server: '{{ .server }}'
+        namespace: control12
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - RespectIgnoreDifferences=true
+      ignoreDifferences:
+        - group: networking.istio.io
+          kind: VirtualService
+          jqPathExpressions:
+            - '.spec.http[] | select(.name == "primary") | .route[].weight'
+        - group: ""
+          kind: Service
+          jqPathExpressions:
+            - '.spec.selector."rollouts-pod-template-hash"'

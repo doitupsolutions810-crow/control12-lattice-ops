@@ -1,0 +1,26 @@
+name: CONTROL12 Actions Control Plane Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/actions-control-plane-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: [self-hosted, macOS, ARM64, control12]
+    timeout-minutes: 5
+    steps:
+      - name: Minimal shell diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CONTROL12_ACTIONS_DIAGNOSTIC=PASS"
+          echo "runner=${RUNNER_NAME:-unknown}"
+          echo "os=${RUNNER_OS:-unknown}"
+          echo "arch=${RUNNER_ARCH:-unknown}"
+          uname -a
+          date -u +%Y-%m-%dT%H:%M:%SZ
