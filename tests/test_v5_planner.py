@@ -1,3 +1,4 @@
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -7,6 +8,9 @@ def load_planner():
     spec = spec_from_file_location("control12_v5_planner", path)
     module = module_from_spec(spec)
     assert spec and spec.loader
+    # dataclasses resolves string annotations via sys.modules[cls.__module__]; an
+    # unregistered module raised AttributeError: 'NoneType' object has no attribute '__dict__'.
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 

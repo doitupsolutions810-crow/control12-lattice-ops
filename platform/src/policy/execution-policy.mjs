@@ -125,7 +125,9 @@ export function createExecutionPolicy(options = {}) {
     if (path.isAbsolute(relPath)) {
       deny('absolute paths are not allowed; use workspace-relative paths');
     }
-    const cleaned = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    // Leading '..' segments were previously stripped (so '../outside' silently became
+    // '<root>/outside'); any '..' that survives normalisation is now rejected instead.
+    const cleaned = path.normalize(relPath);
     if (cleaned.split(path.sep).includes('..')) {
       deny('path escapes workspace');
     }
